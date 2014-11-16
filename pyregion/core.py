@@ -42,7 +42,7 @@ class ShapeList(list):
         else:
             return True
 
-    def as_imagecoord(self, header, rot_wrt_axis=1):
+    def as_imagecoord(self, header):
         """
         Return a new `ShapeList` where the coordinate of the each shape
         is converted to the image coordinate using the given header
@@ -54,7 +54,7 @@ class ShapeList(list):
             comment_list = cycle([None])
 
         r = RegionParser.sky_to_image(zip(self, comment_list),
-                                      header, rot_wrt_axis=rot_wrt_axis)
+                                      header)
         shape_list, comment_list = zip(*list(r))
         return ShapeList(shape_list, comment_list=comment_list)
 
@@ -76,7 +76,7 @@ class ShapeList(list):
 
         return patches, txts
 
-    def get_filter(self, header=None, origin=1, rot_wrt_axis=1):
+    def get_filter(self, header=None, origin=1):
         """
         Often, the regions files implicitly assume the lower-left
         corner of the image as a coordinate (1,1). However, the python
@@ -94,14 +94,13 @@ class ShapeList(list):
                                    "header is required.")
             reg_in_imagecoord = self
         else:
-            reg_in_imagecoord = self.as_imagecoord(header,
-                                                   rot_wrt_axis=rot_wrt_axis)
+            reg_in_imagecoord = self.as_imagecoord(header)
 
         region_filter = as_region_filter(reg_in_imagecoord, origin=1)
 
         return region_filter
 
-    def get_mask(self, hdu=None, header=None, shape=None, rot_wrt_axis=1):
+    def get_mask(self, hdu=None, header=None, shape=None):
         """
         creates a 2-d mask.
 
@@ -115,8 +114,7 @@ class ShapeList(list):
         if hdu and shape is None:
             shape = hdu.data.shape
 
-        region_filter = self.get_filter(header=header,
-                                        rot_wrt_axis=rot_wrt_axis)
+        region_filter = self.get_filter(header=header)
         mask = region_filter.mask(shape)
 
         return mask
@@ -207,12 +205,12 @@ def read_region(s):
     return rp.filter_shape(sss2)
 
 
-def read_region_as_imagecoord(s, header, rot_wrt_axis=1):
+def read_region_as_imagecoord(s, header):
     rp = RegionParser()
     ss = rp.parse(s)
     sss1 = rp.convert_attr(ss)
     sss2 = _check_wcs(sss1)
-    sss3 = rp.sky_to_image(sss2, header, rot_wrt_axis=rot_wrt_axis)
+    sss3 = rp.sky_to_image(sss2, header)
 
     return rp.filter_shape(sss3)
 

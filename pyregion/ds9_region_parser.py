@@ -87,8 +87,7 @@ class RegionParser(RegionPusher):
 
         line_w_composite = And([regionAtom,
                                 CaselessKeyword("||").setParseAction(self.set_continued)
-                                ]) \
-                                + Optional(regionComment)
+                                ]) + Optional(regionComment)
 
         line = Or([line_simple, line_w_composite])
 
@@ -162,7 +161,7 @@ class RegionParser(RegionPusher):
                 yield l1, c1
 
     @staticmethod
-    def sky_to_image(shapelist, header, rot_wrt_axis=1):
+    def sky_to_image(shapelist, header):
         """Converts a `ShapeList` into shapes with coordinates in image coordinates
 
         Parameters
@@ -171,9 +170,6 @@ class RegionParser(RegionPusher):
             The ShapeList to convert
         header : `~astropy.io.fits.Header` or `~astropy.wcs.WCS`
             Specifies what WCS transformations to use.
-        rot_wrt_axis : 1 or 2
-            Specifies whether to measure angles East of North or West of North.
-            Currently ignored. TODO
 
         Yields
         -------
@@ -190,8 +186,7 @@ class RegionParser(RegionPusher):
             if isinstance(shape, Shape) and \
                     (shape.coord_format not in image_like_coordformats):
 
-                new_coords = convert_to_imagecoord(shape, header,
-                                                   rot_wrt_axis=rot_wrt_axis)
+                new_coords = convert_to_imagecoord(shape, header)
 
                 l1n = copy.copy(shape)
 
