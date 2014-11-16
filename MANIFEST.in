@@ -1,5 +1,4 @@
 include LICENSE
-include LICENSE_kapteyn.txt
 include README.md
 
 include ez_setup.py
