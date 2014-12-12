@@ -7,8 +7,24 @@ from .. import DS9ParsingException
 @pytest.mark.parametrize(("reg_string", "x", "y", "radius"), [
     ("circle 5 3 54", 5*u.pixel, 3*u.pixel, 54*u.pixel),
     ("circle(5,4,54)", 5*u.pixel, 4*u.pixel, 54*u.pixel),
+    ("circle(5 4 54)", 5*u.pixel, 4*u.pixel, 54*u.pixel),
 ])
 def test_ply_parsing(reg_string, x, y, radius):
+    result = _ply_helper.parse_region_string(reg_string)
+    assert len(result) == 1
+    test_circle = result[0]
+
+    assert test_circle.origin.data.x == x
+    assert test_circle.origin.data.y == y
+    assert test_circle.radius == radius
+
+
+@pytest.mark.parametrize(("reg_string", "x", "y", "radius"), [
+    ("circle 5 3 54\n", 5*u.pixel, 3*u.pixel, 54*u.pixel),
+    ("circle(5,4,54);;", 5*u.pixel, 4*u.pixel, 54*u.pixel),
+    (";;circle(5 4 54)\n\n", 5*u.pixel, 4*u.pixel, 54*u.pixel),
+])
+def test_delimiters(reg_string, x, y, radius):
     result = _ply_helper.parse_region_string(reg_string)
     assert len(result) == 1
     test_circle = result[0]
@@ -53,3 +69,18 @@ def test_coordinate_systems(reg_string, coordinate_systems):
     for reg_object, reference_system in zip(result, coordinate_systems):
         assert reg_object.origin.frame.name == reference_system
         assert reg_object.coord_system == reference_system
+
+
+@pytest.mark.parametrize(("reg_string", "x", "y", "radius"), [
+    ("circle 5 3 54\n#Hello world", 5*u.pixel, 3*u.pixel, 54*u.pixel),
+    ("# Hello World\ncircle(5,4,54)", 5*u.pixel, 4*u.pixel, 54*u.pixel),
+    ("# circle(5 4 54)\ncircle(5,4,54)", 5*u.pixel, 4*u.pixel, 54*u.pixel),
+])
+def test_ignore_comments(reg_string, x, y, radius):
+    result = _ply_helper.parse_region_string(reg_string)
+    assert len(result) == 1
+    test_circle = result[0]
+
+    assert test_circle.origin.data.x == x
+    assert test_circle.origin.data.y == y
+    assert test_circle.radius == radius

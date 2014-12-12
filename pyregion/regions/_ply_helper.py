@@ -12,12 +12,11 @@ class DS9Parser:
     def make_parser(cls):
         from astropy.extern.ply import lex, yacc
 
-        literals = ['(', ')', ';', ',']
+        literals = ['(', ')', ',']
         tokens = (
             'PROPERTY',
             'CIRCLE',
             'DELIMITER',
-            'COORDINATESYSTEM',
         )
         states = (
             ('proplist', 'exclusive'),
@@ -39,6 +38,10 @@ class DS9Parser:
             parser_state['system'] = t.value.lower()
             t.lexer.skip(1)
 
+        def t_COMMENT(t):
+            r'\#[^\n]*'
+            pass
+
         def t_proplist_PROPERTY(t):
             r'[\d.:hdms"\'pir]+'
             return t
@@ -46,6 +49,10 @@ class DS9Parser:
         def t_proplist_DELIMITER(t):
             r'[\n;]'
             t.lexer.begin('INITIAL')
+            return t
+
+        def t_DELIMITER(t):
+            r'[\n;]'
             return t
 
         def t_error(t):
@@ -66,6 +73,8 @@ class DS9Parser:
                     p[0] = p[1] + [p[3]]
                 else:
                     p[0] = p[1]
+            else:
+                p[0] = []
 
         def p_line(p):
             ''' line : shape
@@ -117,6 +126,7 @@ class DS9Parser:
 
     def parse(self, data, debug=False):
         return self._parser.parse(data, lexer=self._lexer, debug=debug)
+
 
 def parse_region_string(data, debug=False):
     return DS9Parser().parse(data, debug=debug)
