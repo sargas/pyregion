@@ -16,17 +16,28 @@ class DS9Parser:
         tokens = (
             'PROPERTY',
             'CIRCLE',
-            'DELIMITER'
+            'DELIMITER',
+            'COORDINATESYSTEM',
         )
         states = (
             ('proplist', 'exclusive'),
         )
+        parser_state = {'system': 'fk5'}
 
         def t_CIRCLE(t):
             r'circle'
             t.lexer.begin('proplist')
             t.value = Circle
             return t
+
+        def t_COORDINATESYSTEM(t):
+            r'(?i)GALACTIC|ECLIPTIC|ICRS|FK4|FK5|J2000|B1950'
+            if t.value.lower() == 'j2000':
+                t.value = 'fk5'
+            elif t.value.lower() == 'b1950':
+                t.value = 'fk4'
+            parser_state['system'] = t.value.lower()
+            t.lexer.skip(1)
 
         def t_proplist_PROPERTY(t):
             r'[\d.:hdms"\'pir]+'
@@ -46,8 +57,8 @@ class DS9Parser:
         t_proplist_ignore = t_ignore
 
         def p_shapes(p):
-            ''' shapes : shapes DELIMITER shape
-                       | shape'''
+            ''' shapes : shapes DELIMITER line
+                       | line'''
             if len(p) == 2 and p[1] is not None:
                 p[0] = [p[1]]
             elif len(p) == 4:
@@ -56,11 +67,15 @@ class DS9Parser:
                 else:
                     p[0] = p[1]
 
-        def p_shape(p):
-            ''' shape : circle
-                      | '''
+        def p_line(p):
+            ''' line : shape
+                     | '''
             if len(p) == 2:
                 p[0] = p[1]
+
+        def p_shape(p):
+            ''' shape : circle'''
+            p[0] = p[1]
 
         def p_proplist(p):
             '''proplist : proplist PROPERTY
@@ -78,11 +93,11 @@ class DS9Parser:
 
         def p_circle(p):
             'circle : CIRCLE proplist'
-            p[0] = p[1].from_coordlist(p[2], "", 'icrs')
+            p[0] = p[1].from_coordlist(p[2], "", parser_state['system'])
 
-        lexer = lex.lex(debug=True)
-        parser = yacc.yacc(debug=True)
-        return parser, lexer
+        def p_error(p):
+            raise DS9ParsingException(p)
+
         try:
             from . import ds9_lextab
             lexer = lex.lex(optimize=True, lextab=ds9_lextab)
@@ -91,7 +106,6 @@ class DS9Parser:
                             outputdir=os.path.dirname(__file__))
 
         try:
-            raise ImportError
             from . import ds9_parsetab
             parser = yacc.yacc(debug=False, tabmodule=ds9_parsetab,
                                write_tables=False)
@@ -103,3 +117,6 @@ class DS9Parser:
 
     def parse(self, data, debug=False):
         return self._parser.parse(data, lexer=self._lexer, debug=debug)
+
+def parse_region_string(data, debug=False):
+    return DS9Parser().parse(data, debug=debug)
