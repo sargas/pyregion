@@ -8,3 +8,4 @@ and DS9 region files
 
 from .core import *
 from . import frames
+from ._parsing_helpers import DS9ParsingException

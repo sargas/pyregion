@@ -6,6 +6,10 @@ from astropy.coordinates import Angle, SkyCoord
 from astropy import units as u
 
 
+class DS9ParsingException(Exception):
+    pass
+
+
 def _parse_position(position, odd):
     if 'd' in position or 'h' in position:
         return Angle(position)
@@ -28,20 +32,20 @@ def _parse_position(position, odd):
         return float(position)*u.pixel
 
 
-def _parse_coordinate(odd_coordinate, even_coordinate):
+def _parse_coordinate(odd_coordinate, even_coordinate, coord_system):
     odd_coordinate = _parse_position(odd_coordinate, True)
     even_coordinate = _parse_position(even_coordinate, False)
 
     if odd_coordinate.unit.is_equivalent(u.radian) and\
        even_coordinate.unit.is_equivalent(u.radian):
-        return SkyCoord(odd_coordinate, even_coordinate, frame='icrs')
+        return SkyCoord(odd_coordinate, even_coordinate, frame=coord_system)
     elif (odd_coordinate.unit.is_equivalent(u.pixel) and
           even_coordinate.unit.is_equivalent(u.pixel)):
         return SkyCoord(odd_coordinate, even_coordinate, frame=Image)
     else:
-        raise Exception("Inconsistent units found when parsing coordinate."
-                        "Obtained {} and {}".format(odd_coordinate,
-                                                    even_coordinate))
+        raise DS9ParsingException(
+            "Inconsistent units found when parsing coordinate."
+            "Obtained {} and {}".format(odd_coordinate, even_coordinate))
 
 
 def _parse_size(size):

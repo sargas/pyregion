@@ -1,8 +1,9 @@
 from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 
-from astropy.coordinates import SkyCoord
+from astropy.coordinates import SkyCoord, SphericalRepresentation
 from astropy import units as u
+from ._parsing_helpers import _parse_coordinate, _parse_size
 
 
 __all__ = ['Shape', 'Circle', 'Ellipse']
@@ -24,10 +25,10 @@ class Shape:
 
 
 class Circle(Shape):
-    def __init__(self, lon, lat, radius, comment, coord_system):
+    def __init__(self, origin, radius, comment, coord_system):
         Shape.__init__(self, comment, coord_system)
 
-        self.origin = SkyCoord(lon, lat, frame=coord_system)
+        self.origin = origin
         self.radius = radius
 
     @staticmethod
@@ -35,12 +36,25 @@ class Circle(Shape):
         if len(coordlist) != 3:
             raise ValueError(("Circle created with %s, expected an origin" +
                               " and radius") % repr(coordlist))
-        return Circle(*coordlist, comment=comment, coord_system=coord_system)
+        lon, lat, radius = coordlist
+        origin = _parse_coordinate(lon, lat, coord_system)
+        radius = _parse_size(radius)
+        return Circle(origin, radius, comment=comment,
+                      coord_system=coord_system)
 
     @property
     def coord_list(self):
-        lon, lat = self.origin.data.lon.degree, self.origin.data.lat.degree
-        return [lon, lat, self.radius.to(u.degree).value]
+        if self.origin.representation == SphericalRepresentation:
+            lon, lat = self.origin.data.lon.degree, self.origin.data.lat.degree
+        else:
+            lon, lat = self.origin.data.x.value, self.origin.data.y.value
+
+        if self.radius.unit.is_equivalent(u.radian):
+            radius = self.radius.to(u.degree).value
+        else:
+            radius = self.radius.value
+
+        return [lon, lat, radius]
 
 
 class Ellipse(Shape):

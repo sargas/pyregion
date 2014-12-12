@@ -2,6 +2,7 @@ from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 
 from .._parsing_helpers import _parse_position, _parse_coordinate, _parse_size
+from .. import DS9ParsingException
 from astropy.coordinates import Longitude, Latitude
 from astropy import units as u
 import pytest
@@ -32,23 +33,27 @@ def test_parse_position_pixel(pixel_string, result):
     assert_allclose(pixel_obj.to(u.pixel).value, result)
 
 
-@pytest.mark.parametrize(('odd', 'even', 'is_pixel'), [
-    ("4h3m1s", "41.25234d", False),
-    ("50", "100.0", True)
+@pytest.mark.parametrize(('odd', 'even', 'is_pixel', 'system'), [
+    ("4h3m1s", "41.25234d", False, 'icrs'),
+    ("50", "100.0", True, 'icrs'),
+    ("4h3m1s", "41.25234d", False, 'fk4'),
+    ("50", "100.0", True, 'fk4')
 ])
-def test_parse_coordinate(odd, even, is_pixel):
-    sc = _parse_coordinate(odd, even)
+def test_parse_coordinate(odd, even, is_pixel, system):
+    sc = _parse_coordinate(odd, even, system)
     if is_pixel:
         assert sc.data.x == float(odd)*u.pixel
         assert sc.data.y == float(even)*u.pixel
+        assert sc.frame.name != system
     else:
         assert sc.data.lon == Longitude(odd)
         assert sc.data.lat == Latitude(even)
+        assert sc.frame.name == system
 
 
 def test_parse_coordinate_inconsistent():
-    with pytest.raises(Exception):
-        _parse_coordinate("4d", "400")
+    with pytest.raises(DS9ParsingException):
+        _parse_coordinate("4d", "400", 'galactic')
 
 
 @pytest.mark.parametrize(("angle", "result"), [
