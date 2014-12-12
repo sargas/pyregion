@@ -1,7 +1,7 @@
 from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 
-from .._parsing_helpers import _parse_position, _parse_coordinate
+from .._parsing_helpers import _parse_position, _parse_coordinate, _parse_size
 from astropy.coordinates import Longitude, Latitude
 from astropy import units as u
 import pytest
@@ -49,3 +49,27 @@ def test_parse_coordinate(odd, even, is_pixel):
 def test_parse_coordinate_inconsistent():
     with pytest.raises(Exception):
         _parse_coordinate("4d", "400")
+
+
+@pytest.mark.parametrize(("angle", "result"), [
+    ('5d', 5.),
+    ('5.0535d', 5.0535),
+    ('41"', 41/60/60),
+    ("51'", 51/60),
+    ('2r', 114.59155902616465),
+])
+def test_parse_size_angles(angle, result):
+    size_object = _parse_size(angle)
+    assert size_object.unit.is_equivalent(u.radian)
+    assert_allclose(size_object.degree, result)
+
+
+@pytest.mark.parametrize(("pixel_string", "result"), [
+    ("5", 5),
+    ("34.51", 34.51),
+    ("941i", 941)
+])
+def test_parse_size_pixel(pixel_string, result):
+    pixel_obj = _parse_size(pixel_string)
+    assert pixel_obj.unit.is_equivalent(u.pixel)
+    assert_allclose(pixel_obj.to(u.pixel).value, result)

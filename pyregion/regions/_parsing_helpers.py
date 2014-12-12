@@ -42,3 +42,16 @@ def _parse_coordinate(odd_coordinate, even_coordinate):
         raise Exception("Inconsistent units found when parsing coordinate."
                         "Obtained {} and {}".format(odd_coordinate,
                                                     even_coordinate))
+
+
+def _parse_size(size):
+    if 'd' in size or '"' in size or "'" in size:
+        return Angle(size)
+
+    if size[-1] == 'r':
+        return Angle(size[:-1], unit=u.radian)
+
+    if size[-1] in ['p', 'i']:
+        return float(size[:-1])*u.pixel
+    else:
+        return float(size)*u.pixel
