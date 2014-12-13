@@ -17,9 +17,15 @@ class DS9Parser:
             'PROPERTY',
             'CIRCLE',
             'DELIMITER',
+            'NAMEDPROP',
+            'EQ',
+            'COMMENT',
+            'QUOTEDPARAMETER',
+            'PARAMETER',
         )
         states = (
             ('proplist', 'exclusive'),
+            ('shapecomment', 'exclusive'),
         )
         parser_state = {'system': 'fk5'}
 
@@ -51,6 +57,29 @@ class DS9Parser:
             t.lexer.begin('INITIAL')
             return t
 
+        def t_proplist_COMMENT(t):
+            r'\#'
+            t.lexer.begin('shapecomment')
+            return t
+
+        t_shapecomment_NAMEDPROP = (r"color|text|width|font|select|"
+                                    "highlite|dash|fixed|edit|move|rotate|"
+                                    "delete|ruler")
+
+        t_shapecomment_EQ = '='
+
+        def t_shapecomment_QUOTEDPARAMETER(t):
+            (r'"[^"\n]*"|' r'\{[^}\n]*\}|' r"'[^'\n]*'")
+            t.value = t.value[1:-1]
+            return t
+
+        t_shapecomment_PARAMETER = r'''[^\n={'"]'''
+
+        def t_shapecomment_DELIMITER(t):
+            r'\n'
+            t.lexer.begin('INITIAL')
+            return t
+
         def t_DELIMITER(t):
             r'[\n;]'
             return t
@@ -59,9 +88,11 @@ class DS9Parser:
             raise DS9ParsingException(t)
 
         t_proplist_error = t_error
+        t_shapecomment_error = t_error
 
         t_ignore = ' \t'
         t_proplist_ignore = t_ignore
+        t_shapecomment_ignore = t_ignore
 
         def p_shapes(p):
             ''' shapes : shapes DELIMITER line
@@ -83,8 +114,25 @@ class DS9Parser:
                 p[0] = p[1]
 
         def p_shape(p):
-            ''' shape : circle'''
-            p[0] = p[1]
+            ''' shape : circle
+                      | circle COMMENT commentpropertylist'''
+            if len(p) > 2:
+                properties = p[3]
+            else:
+                properties = {}
+            shape = p[1][0]
+            coordlist = p[1][1]
+            p[0] = shape.from_coordlist(coordlist, parser_state['system'],
+                                        properties)
+
+        def p_commentproperty_list(p):
+            ''' commentpropertylist : commentpropertylist commentproperty
+                                    | commentproperty '''
+            commentproperty = p[len(p) - 1]
+            p[0] = {}
+            if len(p) == 3:
+                p[0].update(p[1])
+            p[0].update(commentproperty)
 
         def p_proplist(p):
             '''proplist : proplist PROPERTY
@@ -100,9 +148,14 @@ class DS9Parser:
             "proplist : '(' proplist ')' "
             p[0] = p[2]
 
+        def p_single_argument_property(p):
+            ''' commentproperty : NAMEDPROP EQ PARAMETER
+                                | NAMEDPROP EQ QUOTEDPARAMETER'''
+            p[0] = {p[1]: p[3]}
+
         def p_circle(p):
             'circle : CIRCLE proplist'
-            p[0] = p[1].from_coordlist(p[2], "", parser_state['system'])
+            p[0] = (p[1], p[2])
 
         def p_error(p):
             raise DS9ParsingException(p)

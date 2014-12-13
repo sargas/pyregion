@@ -13,33 +13,66 @@ def parse(s):
     pass
 
 
+class Properties:
+    # defaults from http://ds9.si.edu/ref/region.html
+    _default_properties = {
+        'text': '',
+        'color': 'green',
+        'font': 'helvetica 10 normal roman',
+        'select': '1',
+        'edit': '1',
+        'move': '1',
+        'delete': '1',
+        'highlite': '1',
+        'include': '1',
+        'fixed': '0',
+    }
+    def __init__(self, properties={}):
+        self._properties = self._default_properties.copy()
+        self._properties.update(properties)
+
+    def __getattr__(self, name):
+        BOOLEAN_PROPERTIES = ['select', 'highlight', 'dash', 'fixed', 'edit',
+                              'move', 'rotate', 'delete']
+        if name in BOOLEAN_PROPERTIES:
+                return self._properties[name] == '1'
+        elif name in self._properties:
+            return self._properties[name]
+
+        raise AttributeError("No property named {} defined".format(name))
+
+
 class Shape:
-    def __init__(self, comment, coord_system):
-        self.comment = comment
+    def __init__(self, coord_system, properties={}):
         self.coord_system = coord_system
+        self.properties = Properties(properties)
 
     @property
     def coord_format(self):
         """ Old name kept for compatibility """
         return self.coord_system
 
+    @property
+    def name(self):
+        return type(self).__name__.lower()
+
 
 class Circle(Shape):
-    def __init__(self, origin, radius, comment, coord_system):
-        Shape.__init__(self, comment, coord_system)
+    def __init__(self, origin, radius, coord_system, properties={}):
+        Shape.__init__(self, coord_system, properties)
 
         self.origin = origin
         self.radius = radius
 
     @staticmethod
-    def from_coordlist(coordlist, comment, coord_system):
+    def from_coordlist(coordlist, coord_system, properties={}):
         if len(coordlist) != 3:
             raise ValueError(("Circle created with %s, expected an origin" +
                               " and radius") % repr(coordlist))
         lon, lat, radius = coordlist
         origin = _parse_coordinate(lon, lat, coord_system)
         radius = _parse_size(radius)
-        return Circle(origin, radius, comment=comment,
+        return Circle(origin, radius, properties=properties,
                       coord_system=coord_system)
 
     @property
@@ -58,8 +91,8 @@ class Circle(Shape):
 
 
 class Ellipse(Shape):
-    def __init__(self, coordlist, comment, coord_format):
-        Shape.__init__(self, comment, coord_format)
+    def __init__(self, coordlist, coord_format, properties={}):
+        Shape.__init__(self, coord_format)
 
         if len(coordlist) < 5 or len(coordlist) % 2 == 0:
             raise ValueError(("Ellipse created with %s, expected an origin" +

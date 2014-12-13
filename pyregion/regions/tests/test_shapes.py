@@ -12,29 +12,22 @@ from .. import Circle, Ellipse
 
 def test_circle():
     with pytest.raises(ValueError):
-        Circle.from_coordlist([0], "Some comment", "galactic")
+        Circle.from_coordlist([0], "galactic")
 
     with pytest.raises(ValueError):
-        Circle.from_coordlist([1, 2, 3, 4], "Some comment", "galactic")
+        Circle.from_coordlist([1, 2, 3, 4], "galactic")
 
     lon, lat = Longitude('2640', unit='arcminute'), Latitude('2d')
     sc = SkyCoord(lon, lat)
     radius_angle = Angle('4"')
-    c = Circle(sc, radius_angle, "some comment", "icrs")
+    c = Circle(sc, radius_angle, "icrs")
     assert c.origin.data.lon == lon
     assert c.origin.data.lat == lat
     assert c.origin.frame.name == sc.frame.name
     assert c.radius == radius_angle
     assert c.coord_list == [44, 2, 4/3600]
     assert c.coord_format == "icrs"
-
-    c2 = Circle.from_coordlist(['44d0m0s', '2d', '4"'], 'comment', 'galactic')
-    assert c2.origin.data.lon == lon
-    assert c2.origin.data.lat == lat
-    assert c2.origin.frame.name == 'galactic'
-    assert c2.radius == radius_angle
-    assert c2.coord_list == [44, 2, 4/3600]
-    assert c2.coord_format == 'galactic'
+    assert c.name == 'circle'
 
 
 @pytest.mark.parametrize(('proplist', 'lon', 'lat', 'radius', 'system',
@@ -47,7 +40,7 @@ def test_circle():
      [42, 5, 4/3600]),
 ])
 def test_circle_from_coordlist(proplist, lon, lat, radius, system, coordlist):
-    c = Circle.from_coordlist(proplist, "-", system)
+    c = Circle.from_coordlist(proplist, system)
     if lon.unit.is_equivalent(u.radian):
         assert c.origin.data.lon == lon
         assert c.origin.data.lat == lat
@@ -59,26 +52,27 @@ def test_circle_from_coordlist(proplist, lon, lat, radius, system, coordlist):
 
     assert c.radius == radius
     assert_allclose(c.coord_list, coordlist)
+    assert c.name == 'circle'
 
 
 def test_ellipse():
     with pytest.raises(ValueError):
-        Ellipse([], "some comment", "icrs")
+        Ellipse([], "icrs")
 
     with pytest.raises(ValueError):
-        Ellipse([1, 2, 3, 4, 5, 6], "some comment", "icrs")
+        Ellipse([1, 2, 3, 4, 5, 6], "icrs")
 
     lon, lat = Longitude('2640', unit='arcminute'), Latitude('2d')
     distance_angles = [Angle("1'"), Angle("20d"), Angle("5d"), Angle("1'")]
     rot_angle = Angle('4"')
     c = Ellipse([lon, lat, distance_angles[0], distance_angles[1],
-                rot_angle], "some comment", "icrs")
+                rot_angle], "icrs")
     assert c.origin.data.lon == lon
     assert c.origin.data.lat == lat
     assert c.angle == rot_angle
     assert c.coord_list == [44, 2, 1/60, 20, 4/3600]
 
-    c2 = Ellipse([lon, lat] + distance_angles + [rot_angle], "comment", 'fk5')
+    c2 = Ellipse([lon, lat] + distance_angles + [rot_angle], 'fk5')
     assert c2.origin.data.lon == lon
     assert c2.origin.data.lat == lat
     assert c2.angle == rot_angle
