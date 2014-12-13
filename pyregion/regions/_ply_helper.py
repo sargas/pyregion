@@ -26,6 +26,7 @@ class DS9Parser:
             'PARAMETER',
             'TAG',
             'GLOBAL',
+            'INCLUDEFLAG',
         )
         states = (
             ('proplist', 'exclusive'),
@@ -37,6 +38,11 @@ class DS9Parser:
             r'circle'
             t.lexer.begin('proplist')
             t.value = Circle
+            return t
+
+        def t_INCLUDEFLAG(t):
+            r'\+|-'
+            t.value = {'include': t.value == '+'}
             return t
 
         def t_GLOBAL(t):
@@ -129,27 +135,37 @@ class DS9Parser:
             else:
                 p[0] = []
 
+        def p_empty_line(p):
+            ''' line : '''
+            pass
+
         def p_line(p):
             ''' line : shape
-                     | '''
-            if len(p) == 2:
-                p[0] = p[1]
+                     | INCLUDEFLAG shape
+                     | shape COMMENT commentpropertylist
+                     | INCLUDEFLAG shape COMMENT commentpropertylist'''
+            properties = parser_state['global_properties'].copy()
+            if len(p) in [3, 5]:
+                shape_parsing = p[2]
+                properties.update(p[1])
+            else:
+                shape_parsing = p[1]
+
+            if len(p) > 3:
+                properties.update(p[len(p) - 1])
+
+            shape = shape_parsing[0]
+            coordlist = shape_parsing[1]
+            p[0] = shape.from_coordlist(coordlist, parser_state['system'],
+                                        properties)
 
         def p_global_line(p):
             ''' line : GLOBAL commentpropertylist'''
             parser_state['global_properties'].update(p[2])
 
         def p_shape(p):
-            ''' shape : circle
-                      | circle COMMENT commentpropertylist'''
-            properties = parser_state['global_properties'].copy()
-            if len(p) > 2:
-                properties.update(p[3])
-
-            shape = p[1][0]
-            coordlist = p[1][1]
-            p[0] = shape.from_coordlist(coordlist, parser_state['system'],
-                                        properties)
+            ''' shape : circle '''
+            p[0] = p[1]
 
         def p_commentproperty_list(p):
             ''' commentpropertylist : commentpropertylist commentproperty

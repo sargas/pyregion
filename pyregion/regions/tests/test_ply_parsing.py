@@ -175,3 +175,20 @@ def test_global_properties():
     assert len(result) == 1
     assert result[0].properties.font == 'test'
     assert result[0].properties.is_background
+
+
+def test_include_flag():
+    result = parse_region_string('circle 1 2 3')[0]
+    assert result.properties.include
+
+    result = parse_region_string('+circle 1 2 3')[0]
+    assert result.properties.include
+
+    result = parse_region_string('-circle 1 2 3')[0]
+    assert not result.properties.include
+
+    result = parse_region_string('-circle 1 2 3; circle 3 2 1; +circle 5 6 7')
+    assert len(result) == 3
+    assert not result[0].properties.include
+    assert result[1].properties.include
+    assert result[2].properties.include
