@@ -123,7 +123,7 @@ def test_properties():
     result = parse_region_string(' circle 1 2 3 # color="yellow"'
                                  ' dashlist = 8 3')[0]
     assert result.properties.color == 'yellow'
-    assert result.properties.dashlist == ('8','3')
+    assert result.properties.dashlist == ('8', '3')
     assert result.properties.is_source
     assert not result.properties.is_background
 
@@ -132,7 +132,7 @@ def test_source_background_properties():
     result = parse_region_string(' circle 1 2 3 # color="yellow"'
                                  ' dashlist = 8 3')[0]
     assert result.properties.color == 'yellow'
-    assert result.properties.dashlist == ('8','3')
+    assert result.properties.dashlist == ('8', '3')
     assert result.properties.is_source
     assert not result.properties.is_background
 
@@ -160,3 +160,18 @@ def test_tags():
                                  ' tag=Hello')[0]
     assert result.properties.color == 'yellow'
     assert result.tag == ['Group 1', 'Hello']
+
+
+def test_global_properties():
+    result = parse_region_string('global font="test"\ncircle 1 2 3')
+    assert len(result) == 1
+    assert result[0].properties.font == 'test'
+
+    result = parse_region_string('global font="test"\ncircle 1 2 3 # font="x"')
+    assert len(result) == 1
+    assert result[0].properties.font == 'x'
+
+    result = parse_region_string('global font="test" background\ncircle 1 2 3')
+    assert len(result) == 1
+    assert result[0].properties.font == 'test'
+    assert result[0].properties.is_background

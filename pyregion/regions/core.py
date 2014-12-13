@@ -27,6 +27,7 @@ class Properties:
         'include': '1',
         'fixed': '0',
     }
+
     def __init__(self, properties={}):
         self._properties = self._default_properties.copy()
         self._properties.update(properties)
@@ -67,6 +68,7 @@ class Shape:
     @property
     def tag(self):
         return self.properties.tag
+
 
 class Circle(Shape):
     def __init__(self, origin, radius, coord_system, properties={}):

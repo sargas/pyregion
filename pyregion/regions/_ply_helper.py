@@ -25,17 +25,23 @@ class DS9Parser:
             'QUOTEDPARAMETER',
             'PARAMETER',
             'TAG',
+            'GLOBAL',
         )
         states = (
             ('proplist', 'exclusive'),
             ('shapecomment', 'exclusive'),
         )
-        parser_state = {'system': 'fk5'}
+        parser_state = {'system': 'fk5', 'global_properties': {}}
 
         def t_CIRCLE(t):
             r'circle'
             t.lexer.begin('proplist')
             t.value = Circle
+            return t
+
+        def t_GLOBAL(t):
+            r'global'
+            t.lexer.begin('shapecomment')
             return t
 
         def t_COORDINATESYSTEM(t):
@@ -129,13 +135,17 @@ class DS9Parser:
             if len(p) == 2:
                 p[0] = p[1]
 
+        def p_global_line(p):
+            ''' line : GLOBAL commentpropertylist'''
+            parser_state['global_properties'].update(p[2])
+
         def p_shape(p):
             ''' shape : circle
                       | circle COMMENT commentpropertylist'''
+            properties = parser_state['global_properties'].copy()
             if len(p) > 2:
-                properties = p[3]
-            else:
-                properties = {}
+                properties.update(p[3])
+
             shape = p[1][0]
             coordlist = p[1][1]
             p[0] = shape.from_coordlist(coordlist, parser_state['system'],
@@ -170,15 +180,11 @@ class DS9Parser:
             p[0] = p[2]
 
         def p_single_argument_property(p):
-            ''' commentproperty : PROPONEARG EQ PARAMETER
-                                | PROPONEARG EQ QUOTEDPARAMETER'''
+            ''' commentproperty : PROPONEARG EQ parameter'''
             p[0] = {p[1]: p[3]}
 
         def p_two_argument_property(p):
-            '''commentproperty : PROPTWOARG EQ PARAMETER PARAMETER
-                               | PROPTWOARG EQ PARAMETER QUOTEDPARAMETER
-                               | PROPTWOARG EQ QUOTEDPARAMETER PARAMETER
-                               | PROPTWOARG EQ QUOTEDPARAMETER QUOTEDPARAMETER'''
+            'commentproperty : PROPTWOARG EQ parameter parameter'
             p[0] = {p[1]: (p[3], p[4])}
 
         def p_no_argument_property(p):
@@ -186,9 +192,13 @@ class DS9Parser:
             p[0] = {'sourcebackground': p[1]}
 
         def p_tag(p):
-            '''commentproperty : TAG EQ PARAMETER
-                               | TAG EQ QUOTEDPARAMETER'''
+            '''commentproperty : TAG EQ parameter'''
             p[0] = {p[1]: [p[3]]}
+
+        def p_parameter(p):
+            ''' parameter : QUOTEDPARAMETER
+                          | PARAMETER'''
+            p[0] = p[1]
 
         def p_circle(p):
             'circle : CIRCLE proplist'
