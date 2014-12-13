@@ -41,6 +41,14 @@ class Properties:
 
         raise AttributeError("No property named {} defined".format(name))
 
+    @property
+    def is_source(self):
+        return self._properties.get('sourcebackground', 'source') == 'source'
+
+    @property
+    def is_background(self):
+        return not self.is_source
+
 
 class Shape:
     def __init__(self, coord_system, properties={}):
@@ -56,6 +64,9 @@ class Shape:
     def name(self):
         return type(self).__name__.lower()
 
+    @property
+    def tag(self):
+        return self.properties.tag
 
 class Circle(Shape):
     def __init__(self, origin, radius, coord_system, properties={}):

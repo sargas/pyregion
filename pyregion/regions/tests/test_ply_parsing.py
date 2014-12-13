@@ -119,3 +119,44 @@ def test_properties():
     assert result[0].properties.edit
     assert not result[1].properties.edit
     assert result[2].properties.edit
+
+    result = parse_region_string(' circle 1 2 3 # color="yellow"'
+                                 ' dashlist = 8 3')[0]
+    assert result.properties.color == 'yellow'
+    assert result.properties.dashlist == ('8','3')
+    assert result.properties.is_source
+    assert not result.properties.is_background
+
+
+def test_source_background_properties():
+    result = parse_region_string(' circle 1 2 3 # color="yellow"'
+                                 ' dashlist = 8 3')[0]
+    assert result.properties.color == 'yellow'
+    assert result.properties.dashlist == ('8','3')
+    assert result.properties.is_source
+    assert not result.properties.is_background
+
+    result = parse_region_string(' circle 1 2 3 # edit=1 source background')[0]
+    assert result.properties.edit
+    assert not result.properties.is_source
+    assert result.properties.is_background
+
+    result = parse_region_string(' circle 1 2 3 # edit=1 background')[0]
+    assert result.properties.edit
+    assert not result.properties.is_source
+    assert result.properties.is_background
+
+    result = parse_region_string(' circle 1 2 3 # background edit=1')[0]
+    assert result.properties.edit
+    assert not result.properties.is_source
+    assert result.properties.is_background
+
+
+def test_tags():
+    result = parse_region_string('circle 1 2 3 # tag=42 tag=1')[0]
+    assert result.tag == ['42', '1']
+
+    result = parse_region_string('circle 1 2 3 # color="yellow" tag={Group 1}'
+                                 ' tag=Hello')[0]
+    assert result.properties.color == 'yellow'
+    assert result.tag == ['Group 1', 'Hello']

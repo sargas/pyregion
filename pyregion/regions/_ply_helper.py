@@ -17,11 +17,14 @@ class DS9Parser:
             'PROPERTY',
             'CIRCLE',
             'DELIMITER',
-            'NAMEDPROP',
+            'PROPONEARG',
+            'PROPTWOARG',
+            'PROPNOARG',
             'EQ',
             'COMMENT',
             'QUOTEDPARAMETER',
             'PARAMETER',
+            'TAG',
         )
         states = (
             ('proplist', 'exclusive'),
@@ -62,9 +65,24 @@ class DS9Parser:
             t.lexer.begin('shapecomment')
             return t
 
-        t_shapecomment_NAMEDPROP = (r"color|text|width|font|select|"
-                                    "highlite|dash|fixed|edit|move|rotate|"
-                                    "delete|ruler")
+        one_arg_properties = ['color', 'text', 'width', 'font', 'select',
+                              'highlite', 'dash', 'fixed', 'edit', 'move',
+                              'rotate', 'delete', 'ruler']
+        two_arg_properties = ['dashlist', 'line', 'point']
+        no_arg_properties = ['source', 'background']
+
+        def t_shapecomment_PARAMETER(t):
+            r'''[^\n={'" ]+'''
+            if t.value == 'tag':
+                t.type = 'TAG'
+            elif t.value in one_arg_properties:
+                t.type = 'PROPONEARG'
+            elif t.value in two_arg_properties:
+                t.type = 'PROPTWOARG'
+            elif t.value in no_arg_properties:
+                t.type = 'PROPNOARG'
+
+            return t
 
         t_shapecomment_EQ = '='
 
@@ -72,8 +90,6 @@ class DS9Parser:
             (r'"[^"\n]*"|' r'\{[^}\n]*\}|' r"'[^'\n]*'")
             t.value = t.value[1:-1]
             return t
-
-        t_shapecomment_PARAMETER = r'''[^\n={'"]'''
 
         def t_shapecomment_DELIMITER(t):
             r'\n'
@@ -132,6 +148,11 @@ class DS9Parser:
             p[0] = {}
             if len(p) == 3:
                 p[0].update(p[1])
+
+            if 'tag' in commentproperty and 'tag' in p[0]:
+                p[0]['tag'].extend(commentproperty['tag'])
+                del commentproperty['tag']
+
             p[0].update(commentproperty)
 
         def p_proplist(p):
@@ -149,9 +170,25 @@ class DS9Parser:
             p[0] = p[2]
 
         def p_single_argument_property(p):
-            ''' commentproperty : NAMEDPROP EQ PARAMETER
-                                | NAMEDPROP EQ QUOTEDPARAMETER'''
+            ''' commentproperty : PROPONEARG EQ PARAMETER
+                                | PROPONEARG EQ QUOTEDPARAMETER'''
             p[0] = {p[1]: p[3]}
+
+        def p_two_argument_property(p):
+            '''commentproperty : PROPTWOARG EQ PARAMETER PARAMETER
+                               | PROPTWOARG EQ PARAMETER QUOTEDPARAMETER
+                               | PROPTWOARG EQ QUOTEDPARAMETER PARAMETER
+                               | PROPTWOARG EQ QUOTEDPARAMETER QUOTEDPARAMETER'''
+            p[0] = {p[1]: (p[3], p[4])}
+
+        def p_no_argument_property(p):
+            ''' commentproperty : PROPNOARG '''
+            p[0] = {'sourcebackground': p[1]}
+
+        def p_tag(p):
+            '''commentproperty : TAG EQ PARAMETER
+                               | TAG EQ QUOTEDPARAMETER'''
+            p[0] = {p[1]: [p[3]]}
 
         def p_circle(p):
             'circle : CIRCLE proplist'
