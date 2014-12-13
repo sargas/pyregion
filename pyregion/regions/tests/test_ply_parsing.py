@@ -192,3 +192,16 @@ def test_include_flag():
     assert not result[0].properties.include
     assert result[1].properties.include
     assert result[2].properties.include
+
+
+def test_unsupported():
+    with pytest.raises(DS9ParsingException):
+        parse_region_string('wcsa; circle 1 2 3')
+
+    with pytest.raises(DS9ParsingException):
+        parse_region_string('tile 2; circle 1 2 3')
+
+
+def test_forreal():
+    import ipdb;
+    ipdb.set_trace()

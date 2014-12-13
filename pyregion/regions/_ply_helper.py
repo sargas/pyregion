@@ -50,6 +50,16 @@ class DS9Parser:
             t.lexer.begin('shapecomment')
             return t
 
+        def t_WCS(t):
+            r'wcs.'
+            raise DS9ParsingException('wcs specified in the region file.'
+                                      'This is not currently supported')
+
+        def t_TILE(t):
+            r'tile'
+            raise DS9ParsingException('Specifying a specific tile in mosaic'
+                                      ' images is unsupported at this time')
+
         def t_COORDINATESYSTEM(t):
             r'(?i)GALACTIC|ECLIPTIC|ICRS|FK4|FK5|J2000|B1950'
             if t.value.lower() == 'j2000':
