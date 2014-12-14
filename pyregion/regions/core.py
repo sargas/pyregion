@@ -6,7 +6,7 @@ from astropy import units as u
 from ._parsing_helpers import _parse_angle, _parse_coordinate, _parse_size
 
 
-__all__ = ['Shape', 'Circle', 'Ellipse']
+__all__ = ['Shape', 'Box', 'Circle', 'Ellipse']
 
 
 class Properties:
@@ -73,7 +73,7 @@ def _get_xy(skycoord):
         return skycoord.data.x.value, skycoord.data.y.value
 
 
-def _get_angle(angle):
+def _get_angle_or_size(angle):
     if angle.unit.is_equivalent(u.radian):
         return angle.to(u.degree).value
     else:
@@ -101,7 +101,7 @@ class Circle(Shape):
     @property
     def coord_list(self):
         lon, lat = _get_xy(self.origin)
-        radius = _get_angle(self.radius)
+        radius = _get_angle_or_size(self.radius)
 
         return [lon, lat, radius]
 
@@ -120,7 +120,7 @@ class Ellipse(Shape):
         radii = list(r.to(u.degree).value
                      for pair in self.levels
                      for r in pair)
-        angle = _get_angle(self.angle)
+        angle = _get_angle_or_size(self.angle)
         return [lon, lat] + radii + [angle]
 
     @staticmethod
@@ -139,3 +139,35 @@ class Ellipse(Shape):
 
         return Ellipse(origin, levels, angle, properties=properties,
                        coord_system=coord_system)
+
+
+class Box(Shape):
+    def __init__(self, origin, width, height, angle, coord_system,
+                 properties={}):
+        Shape.__init__(self, coord_system, properties)
+
+        self.origin = origin
+        self.width = width
+        self.height = height
+        self.angle = angle
+
+    @property
+    def coord_list(self):
+        lon, lat = _get_xy(self.origin)
+        width = _get_angle_or_size(self.width)
+        height = _get_angle_or_size(self.height)
+        angle = _get_angle_or_size(self.angle)
+        return [lon, lat, width, height, angle]
+
+    @staticmethod
+    def from_coordlist(coordlist, coord_system, properties={}):
+        if len(coordlist) != 5:
+            raise ValueError(("Box created with %s, expected an origin, "
+                              "width, height, and angle of rotation") %
+                             repr(coordlist))
+        origin = _parse_coordinate(coordlist[0], coordlist[1], coord_system)
+        width = _parse_size(coordlist[2])
+        height = _parse_size(coordlist[3])
+        angle = _parse_angle(coordlist[4])
+
+        return Box(origin, width, height, angle, coord_system, properties)

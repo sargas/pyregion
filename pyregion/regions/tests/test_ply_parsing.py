@@ -204,10 +204,18 @@ def test_unsupported():
 
 
 def test_other_shapes():
-    result = parse_region_string('ellipse 1 2 3 4 5', debug=True)
+    result = parse_region_string('ellipse 1 2 3 4 5')
     assert len(result) == 1
     assert result[0].origin.data.x == 1*u.pixel
     assert result[0].origin.data.y == 2*u.pixel
     assert len(result[0].levels) == 1
     assert result[0].levels[0] == (3*u.pixel, 4*u.pixel)
+    assert result[0].angle == Angle(5, u.degree)
+
+    result = parse_region_string('box 1 2 3 4 5')
+    assert len(result) == 1
+    assert result[0].origin.data.x == 1*u.pixel
+    assert result[0].origin.data.y == 2*u.pixel
+    assert result[0].width == 3*u.pixel
+    assert result[0].height == 4*u.pixel
     assert result[0].angle == Angle(5, u.degree)

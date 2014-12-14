@@ -5,7 +5,7 @@ import pytest
 from astropy.coordinates import Angle, Longitude, Latitude, SkyCoord
 from astropy import units as u
 from numpy.testing import assert_allclose
-from .. import Circle, Ellipse
+from .. import Box, Circle, Ellipse
 
 """ Test initalization and other aspects of Shape objects """
 
@@ -71,15 +71,15 @@ def test_ellipse():
 
 
 def test_ellipse_from_coordlist():
-    c2 = Ellipse.from_coordlist(['44', '2', '1"', '20d', '5d', '1"', '50'],
-                                'fk5')
-    assert c2.origin.X == 44*u.pixel
-    assert c2.origin.Y == 2*u.pixel
-    assert len(c2.levels) == 2
-    assert c2.levels[0] == (Angle(1, unit=u.arcsecond), Angle('20d'))
-    assert c2.levels[1] == (Angle('5d'), Angle(1, unit=u.arcsecond))
-    assert c2.angle == Angle(50, unit=u.degree)
-    assert c2.coord_list == [44, 2, 1/3600, 20, 5, 1/3600, 50]
+    c = Ellipse.from_coordlist(['44', '2', '1"', '20d', '5d', '1"', '50'],
+                               'fk5')
+    assert c.origin.X == 44*u.pixel
+    assert c.origin.Y == 2*u.pixel
+    assert len(c.levels) == 2
+    assert c.levels[0] == (Angle(1, unit=u.arcsecond), Angle('20d'))
+    assert c.levels[1] == (Angle('5d'), Angle(1, unit=u.arcsecond))
+    assert c.angle == Angle(50, unit=u.degree)
+    assert c.coord_list == [44, 2, 1/3600, 20, 5, 1/3600, 50]
 
 
 def test_ellipse_errors():
@@ -88,3 +88,35 @@ def test_ellipse_errors():
 
     with pytest.raises(ValueError):
         Ellipse.from_coordlist([1, 2, 3, 4, 5, 6], "icrs")
+
+
+def test_box():
+    lon, lat = Longitude('2640', unit='arcminute'), Latitude('2d')
+    sc = SkyCoord(lon, lat)
+    width, height = Angle(4, u.arcsecond), 10*u.pixel
+    rot_angle = Angle('4"')
+    c = Box(sc, width, height, rot_angle, "icrs")
+    assert c.origin.data.lon == lon
+    assert c.origin.data.lat == lat
+    assert c.width == width
+    assert c.height == height
+    assert c.angle == rot_angle
+    assert c.coord_list == [44, 2, 4/3600, 10, 4/3600]
+
+
+def test_box_from_coordlist():
+    c = Box.from_coordlist(['44d', '2:0:1', '1"', '4d', '25'], 'galactic')
+    assert c.origin.data.lon == Angle(44, unit=u.degree)
+    assert c.origin.data.lat == Angle('2d0m1s')
+    assert c.width == Angle(1, unit=u.arcsecond)
+    assert c.height == Angle(4, unit=u.degree)
+    assert c.angle == Angle(25, unit=u.degree)
+    assert c.coord_list == [44, 2+1/3600, 1/3600, 4, 25]
+
+
+def test_box_errors():
+    with pytest.raises(ValueError):
+        Box.from_coordlist([], "icrs")
+
+    with pytest.raises(ValueError):
+        Box.from_coordlist([1, 2, 3, 4, 5, 6], "icrs")

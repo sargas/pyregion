@@ -1,5 +1,5 @@
 import os
-from .core import Circle, Ellipse
+from .core import Box, Circle, Ellipse
 from ._parsing_helpers import DS9ParsingException
 
 
@@ -36,8 +36,12 @@ class DS9Parser:
         )
         parser_state = {'system': 'fk5', 'global_properties': {}}
 
-        SHAPES = {'circle': Circle,
-                  'ellipse': Ellipse}
+        SHAPES = {
+            'circle': Circle,
+            'ellipse': Ellipse,
+            'box': Box,
+            'rotbox': Box,
+        }
 
         @lex.TOKEN(r'|'.join(SHAPES))
         def t_SHAPE(t):
