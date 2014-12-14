@@ -1,4 +1,5 @@
 from astropy import units as u
+from astropy.coordinates import Angle
 import pytest
 from .._ply_helper import parse_region_string
 from .. import DS9ParsingException
@@ -202,6 +203,11 @@ def test_unsupported():
         parse_region_string('tile 2; circle 1 2 3')
 
 
-def test_forreal():
-    import ipdb;
-    ipdb.set_trace()
+def test_other_shapes():
+    result = parse_region_string('ellipse 1 2 3 4 5', debug=True)
+    assert len(result) == 1
+    assert result[0].origin.data.x == 1*u.pixel
+    assert result[0].origin.data.y == 2*u.pixel
+    assert len(result[0].levels) == 1
+    assert result[0].levels[0] == (3*u.pixel, 4*u.pixel)
+    assert result[0].angle == Angle(5, u.degree)

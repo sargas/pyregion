@@ -1,5 +1,5 @@
 import os
-from .core import Circle
+from .core import Circle, Ellipse
 from ._parsing_helpers import DS9ParsingException
 
 
@@ -27,17 +27,22 @@ class DS9Parser:
             'TAG',
             'GLOBAL',
             'INCLUDEFLAG',
+            'SHAPE',
         )
+
         states = (
             ('proplist', 'exclusive'),
             ('shapecomment', 'exclusive'),
         )
         parser_state = {'system': 'fk5', 'global_properties': {}}
 
-        def t_CIRCLE(t):
-            r'circle'
+        SHAPES = {'circle': Circle,
+                  'ellipse': Ellipse}
+
+        @lex.TOKEN(r'|'.join(SHAPES))
+        def t_SHAPE(t):
             t.lexer.begin('proplist')
-            t.value = Circle
+            t.value = SHAPES[t.value]
             return t
 
         def t_INCLUDEFLAG(t):
@@ -174,8 +179,8 @@ class DS9Parser:
             parser_state['global_properties'].update(p[2])
 
         def p_shape(p):
-            ''' shape : circle '''
-            p[0] = p[1]
+            ''' shape : SHAPE proplist'''
+            p[0] = (p[1], p[2])
 
         def p_commentproperty_list(p):
             ''' commentpropertylist : commentpropertylist commentproperty
@@ -225,10 +230,6 @@ class DS9Parser:
             ''' parameter : QUOTEDPARAMETER
                           | PARAMETER'''
             p[0] = p[1]
-
-        def p_circle(p):
-            'circle : CIRCLE proplist'
-            p[0] = (p[1], p[2])
 
         def p_error(p):
             raise DS9ParsingException(p)

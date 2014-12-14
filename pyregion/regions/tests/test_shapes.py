@@ -11,12 +11,6 @@ from .. import Circle, Ellipse
 
 
 def test_circle():
-    with pytest.raises(ValueError):
-        Circle.from_coordlist([0], "galactic")
-
-    with pytest.raises(ValueError):
-        Circle.from_coordlist([1, 2, 3, 4], "galactic")
-
     lon, lat = Longitude('2640', unit='arcminute'), Latitude('2d')
     sc = SkyCoord(lon, lat)
     radius_angle = Angle('4"')
@@ -28,6 +22,14 @@ def test_circle():
     assert c.coord_list == [44, 2, 4/3600]
     assert c.coord_format == "icrs"
     assert c.name == 'circle'
+
+
+def test_circle_errors():
+    with pytest.raises(ValueError):
+        Circle.from_coordlist([0], "galactic")
+
+    with pytest.raises(ValueError):
+        Circle.from_coordlist([1, 2, 3, 4], "galactic")
 
 
 @pytest.mark.parametrize(('proplist', 'lon', 'lat', 'radius', 'system',
@@ -56,24 +58,33 @@ def test_circle_from_coordlist(proplist, lon, lat, radius, system, coordlist):
 
 
 def test_ellipse():
-    with pytest.raises(ValueError):
-        Ellipse([], "icrs")
-
-    with pytest.raises(ValueError):
-        Ellipse([1, 2, 3, 4, 5, 6], "icrs")
-
     lon, lat = Longitude('2640', unit='arcminute'), Latitude('2d')
+    sc = SkyCoord(lon, lat)
     distance_angles = [Angle("1'"), Angle("20d"), Angle("5d"), Angle("1'")]
     rot_angle = Angle('4"')
-    c = Ellipse([lon, lat, distance_angles[0], distance_angles[1],
-                rot_angle], "icrs")
+    c = Ellipse(sc, [(distance_angles[0], distance_angles[1])],
+                rot_angle, "icrs")
     assert c.origin.data.lon == lon
     assert c.origin.data.lat == lat
     assert c.angle == rot_angle
     assert c.coord_list == [44, 2, 1/60, 20, 4/3600]
 
-    c2 = Ellipse([lon, lat] + distance_angles + [rot_angle], 'fk5')
-    assert c2.origin.data.lon == lon
-    assert c2.origin.data.lat == lat
-    assert c2.angle == rot_angle
-    assert c2.coord_list == [44, 2, 1/60, 20, 5, 1/60, 4/3600]
+
+def test_ellipse_from_coordlist():
+    c2 = Ellipse.from_coordlist(['44', '2', '1"', '20d', '5d', '1"', '50'],
+                                'fk5')
+    assert c2.origin.X == 44*u.pixel
+    assert c2.origin.Y == 2*u.pixel
+    assert len(c2.levels) == 2
+    assert c2.levels[0] == (Angle(1, unit=u.arcsecond), Angle('20d'))
+    assert c2.levels[1] == (Angle('5d'), Angle(1, unit=u.arcsecond))
+    assert c2.angle == Angle(50, unit=u.degree)
+    assert c2.coord_list == [44, 2, 1/3600, 20, 5, 1/3600, 50]
+
+
+def test_ellipse_errors():
+    with pytest.raises(ValueError):
+        Ellipse.from_coordlist([], "icrs")
+
+    with pytest.raises(ValueError):
+        Ellipse.from_coordlist([1, 2, 3, 4, 5, 6], "icrs")

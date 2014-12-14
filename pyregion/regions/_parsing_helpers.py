@@ -59,3 +59,7 @@ def _parse_size(size):
         return float(size[:-1])*u.pixel
     else:
         return float(size)*u.pixel
+
+
+def _parse_angle(angle):
+    return Angle(angle, unit=u.degree)

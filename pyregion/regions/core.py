@@ -1,16 +1,12 @@
 from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 
-from astropy.coordinates import SkyCoord, SphericalRepresentation
+from astropy.coordinates import SphericalRepresentation
 from astropy import units as u
-from ._parsing_helpers import _parse_coordinate, _parse_size
+from ._parsing_helpers import _parse_angle, _parse_coordinate, _parse_size
 
 
 __all__ = ['Shape', 'Circle', 'Ellipse']
-
-
-def parse(s):
-    pass
 
 
 class Properties:
@@ -70,6 +66,20 @@ class Shape:
         return self.properties.tag
 
 
+def _get_xy(skycoord):
+    if skycoord.representation == SphericalRepresentation:
+        return skycoord.data.lon.degree, skycoord.data.lat.degree
+    else:
+        return skycoord.data.x.value, skycoord.data.y.value
+
+
+def _get_angle(angle):
+    if angle.unit.is_equivalent(u.radian):
+        return angle.to(u.degree).value
+    else:
+        return angle.value
+
+
 class Circle(Shape):
     def __init__(self, origin, radius, coord_system, properties={}):
         Shape.__init__(self, coord_system, properties)
@@ -90,39 +100,42 @@ class Circle(Shape):
 
     @property
     def coord_list(self):
-        if self.origin.representation == SphericalRepresentation:
-            lon, lat = self.origin.data.lon.degree, self.origin.data.lat.degree
-        else:
-            lon, lat = self.origin.data.x.value, self.origin.data.y.value
-
-        if self.radius.unit.is_equivalent(u.radian):
-            radius = self.radius.to(u.degree).value
-        else:
-            radius = self.radius.value
+        lon, lat = _get_xy(self.origin)
+        radius = _get_angle(self.radius)
 
         return [lon, lat, radius]
 
 
 class Ellipse(Shape):
-    def __init__(self, coordlist, coord_format, properties={}):
-        Shape.__init__(self, coord_format)
+    def __init__(self, origin, levels, angle, coord_system, properties={}):
+        Shape.__init__(self, coord_system, properties)
 
+        self.origin = origin
+        self.levels = levels
+        self.angle = angle
+
+    @property
+    def coord_list(self):
+        lon, lat = _get_xy(self.origin)
+        radii = list(r.to(u.degree).value
+                     for pair in self.levels
+                     for r in pair)
+        angle = _get_angle(self.angle)
+        return [lon, lat] + radii + [angle]
+
+    @staticmethod
+    def from_coordlist(coordlist, coord_system, properties={}):
         if len(coordlist) < 5 or len(coordlist) % 2 == 0:
             raise ValueError(("Ellipse created with %s, expected an origin" +
                               ", multiple semi-major/semi-minor axes, and " +
                               "an angle of rotation") % repr(coordlist))
 
-        self.origin = SkyCoord(coordlist[0], coordlist[1], frame=coord_format)
-        self.angle = coordlist[-1]
-        self.levels = list(zip(coordlist[2:-1:2], coordlist[3:-1:2]))
+        origin = _parse_coordinate(coordlist[0], coordlist[1], coord_system)
+        angle = _parse_angle(coordlist[-1])
 
-    @property
-    def coord_list(self):
-        lon, lat = self.origin.data.lon.degree, self.origin.data.lat.degree
-        radii = list(r.to(u.degree).value
-                     for pair in self.levels
-                     for r in pair)
-        return [lon, lat] + radii + [self.angle.to(u.degree).value]
+        for i in range(2, len(coordlist) - 1):
+            coordlist[i] = _parse_size(coordlist[i])
+        levels = list(zip(coordlist[2:-1:2], coordlist[3:-1:2]))
 
-
-_LIST_OF_SHAPES = [Circle, Ellipse]
+        return Ellipse(origin, levels, angle, properties=properties,
+                       coord_system=coord_system)
