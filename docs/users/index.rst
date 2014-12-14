@@ -11,3 +11,4 @@ Pyregion User's Guide
 
     overview.rst
     installing.rst
+    limitations.rst
