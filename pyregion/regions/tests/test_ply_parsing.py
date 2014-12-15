@@ -154,6 +154,9 @@ def test_source_background_properties():
 
 
 def test_tags():
+    result = parse_region_string('circle 1 2 3 # color={yellow}')[0]
+    assert len(result.tag) == 0
+
     result = parse_region_string('circle 1 2 3 # tag=42 tag=1')[0]
     assert result.tag == ['42', '1']
 

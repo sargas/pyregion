@@ -5,7 +5,7 @@ import pytest
 from astropy.coordinates import Angle, Longitude, Latitude, SkyCoord
 from astropy import units as u
 from numpy.testing import assert_allclose
-from .. import Box, Circle, Ellipse
+from .. import Box, Circle, Ellipse, DS9InconsistentArguments
 
 """ Test initalization and other aspects of Shape objects """
 
@@ -14,7 +14,7 @@ def test_circle():
     lon, lat = Longitude('2640', unit='arcminute'), Latitude('2d')
     sc = SkyCoord(lon, lat)
     radius_angle = Angle('4"')
-    c = Circle(sc, radius_angle, "icrs")
+    c = Circle(sc, radius_angle, coord_system="icrs")
     assert c.origin.data.lon == lon
     assert c.origin.data.lat == lat
     assert c.origin.frame.name == sc.frame.name
@@ -25,11 +25,11 @@ def test_circle():
 
 
 def test_circle_errors():
-    with pytest.raises(ValueError):
-        Circle.from_coordlist([0], "galactic")
+    with pytest.raises(DS9InconsistentArguments):
+        Circle.from_coordlist(['0'], coord_system="galactic")
 
-    with pytest.raises(ValueError):
-        Circle.from_coordlist([1, 2, 3, 4], "galactic")
+    with pytest.raises(DS9InconsistentArguments):
+        Circle.from_coordlist(['1', '2', '3', '4'], coord_system="galactic")
 
 
 @pytest.mark.parametrize(('proplist', 'lon', 'lat', 'radius', 'system',
@@ -63,7 +63,7 @@ def test_ellipse():
     distance_angles = [Angle("1'"), Angle("20d"), Angle("5d"), Angle("1'")]
     rot_angle = Angle('4"')
     c = Ellipse(sc, [(distance_angles[0], distance_angles[1])],
-                rot_angle, "icrs")
+                rot_angle, coord_system="icrs")
     assert c.origin.data.lon == lon
     assert c.origin.data.lat == lat
     assert c.angle == rot_angle
@@ -83,11 +83,11 @@ def test_ellipse_from_coordlist():
 
 
 def test_ellipse_errors():
-    with pytest.raises(ValueError):
+    with pytest.raises(DS9InconsistentArguments):
         Ellipse.from_coordlist([], "icrs")
 
-    with pytest.raises(ValueError):
-        Ellipse.from_coordlist([1, 2, 3, 4, 5, 6], "icrs")
+    with pytest.raises(DS9InconsistentArguments):
+        Ellipse.from_coordlist(['1', '2', '3', '4', '5', '6'], "icrs")
 
 
 def test_box():
@@ -95,7 +95,7 @@ def test_box():
     sc = SkyCoord(lon, lat)
     width, height = Angle(4, u.arcsecond), 10*u.pixel
     rot_angle = Angle('4"')
-    c = Box(sc, width, height, rot_angle, "icrs")
+    c = Box(sc, width, height, rot_angle, coord_system="icrs")
     assert c.origin.data.lon == lon
     assert c.origin.data.lat == lat
     assert c.width == width
@@ -115,8 +115,8 @@ def test_box_from_coordlist():
 
 
 def test_box_errors():
-    with pytest.raises(ValueError):
+    with pytest.raises(DS9InconsistentArguments):
         Box.from_coordlist([], "icrs")
 
-    with pytest.raises(ValueError):
-        Box.from_coordlist([1, 2, 3, 4, 5, 6], "icrs")
+    with pytest.raises(DS9InconsistentArguments):
+        Box.from_coordlist(['1', '2', '3', '4', '5', '6'], "icrs")

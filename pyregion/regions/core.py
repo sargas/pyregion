@@ -1,9 +1,9 @@
 from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 
-from astropy.coordinates import SphericalRepresentation
-from astropy import units as u
-from ._parsing_helpers import _parse_angle, _parse_coordinate, _parse_size
+from collections import deque
+from ._parsing_helpers import AngleArgument, DS9InconsistentArguments
+from ._parsing_helpers import RepeatedArgument, SizeArgument, SkyCoordArgument
 
 
 __all__ = ['Shape', 'Box', 'Circle', 'Ellipse']
@@ -22,6 +22,7 @@ class Properties:
         'highlite': '1',
         'include': '1',
         'fixed': '0',
+        'tag': []
     }
 
     def __init__(self, properties={}):
@@ -47,10 +48,12 @@ class Properties:
         return not self.is_source
 
 
-class Shape:
-    def __init__(self, coord_system, properties={}):
-        self.coord_system = coord_system
-        self.properties = Properties(properties)
+class Shape(object):
+    def __init__(self, *args, **kwargs):
+        self.coord_system = kwargs['coord_system']
+        self.properties = Properties(kwargs.get('properties', {}))
+        for argument, value in zip(self.arguments, args):
+            setattr(self, argument.name, value)
 
     @property
     def coord_format(self):
@@ -65,109 +68,39 @@ class Shape:
     def tag(self):
         return self.properties.tag
 
+    @classmethod
+    def from_coordlist(cls, coordlist, coord_system, properties={}):
 
-def _get_xy(skycoord):
-    if skycoord.representation == SphericalRepresentation:
-        return skycoord.data.lon.degree, skycoord.data.lat.degree
-    else:
-        return skycoord.data.x.value, skycoord.data.y.value
+        coords = deque(coordlist)
+        args = [argument.from_coords(coords, coord_system)
+                for argument in cls.arguments]
 
+        if len(coords) > 0:
+            raise DS9InconsistentArguments(
+                "{} created with too many coordinates: {}"
+                .format(repr(cls), coordlist))
 
-def _get_angle_or_size(angle):
-    if angle.unit.is_equivalent(u.radian):
-        return angle.to(u.degree).value
-    else:
-        return angle.value
+        return cls(*args, coord_system=coord_system, properties=properties)
+
+    @property
+    def coord_list(self):
+        coordlist = []
+        for argument in self.arguments:
+            coordlist.extend(argument.to_coords(getattr(self, argument.name)))
+
+        return coordlist
 
 
 class Circle(Shape):
-    def __init__(self, origin, radius, coord_system, properties={}):
-        Shape.__init__(self, coord_system, properties)
-
-        self.origin = origin
-        self.radius = radius
-
-    @staticmethod
-    def from_coordlist(coordlist, coord_system, properties={}):
-        if len(coordlist) != 3:
-            raise ValueError(("Circle created with %s, expected an origin" +
-                              " and radius") % repr(coordlist))
-        lon, lat, radius = coordlist
-        origin = _parse_coordinate(lon, lat, coord_system)
-        radius = _parse_size(radius)
-        return Circle(origin, radius, properties=properties,
-                      coord_system=coord_system)
-
-    @property
-    def coord_list(self):
-        lon, lat = _get_xy(self.origin)
-        radius = _get_angle_or_size(self.radius)
-
-        return [lon, lat, radius]
+    arguments = [SkyCoordArgument('origin'), SizeArgument('radius')]
 
 
 class Ellipse(Shape):
-    def __init__(self, origin, levels, angle, coord_system, properties={}):
-        Shape.__init__(self, coord_system, properties)
-
-        self.origin = origin
-        self.levels = levels
-        self.angle = angle
-
-    @property
-    def coord_list(self):
-        lon, lat = _get_xy(self.origin)
-        radii = list(r.to(u.degree).value
-                     for pair in self.levels
-                     for r in pair)
-        angle = _get_angle_or_size(self.angle)
-        return [lon, lat] + radii + [angle]
-
-    @staticmethod
-    def from_coordlist(coordlist, coord_system, properties={}):
-        if len(coordlist) < 5 or len(coordlist) % 2 == 0:
-            raise ValueError(("Ellipse created with %s, expected an origin" +
-                              ", multiple semi-major/semi-minor axes, and " +
-                              "an angle of rotation") % repr(coordlist))
-
-        origin = _parse_coordinate(coordlist[0], coordlist[1], coord_system)
-        angle = _parse_angle(coordlist[-1])
-
-        for i in range(2, len(coordlist) - 1):
-            coordlist[i] = _parse_size(coordlist[i])
-        levels = list(zip(coordlist[2:-1:2], coordlist[3:-1:2]))
-
-        return Ellipse(origin, levels, angle, properties=properties,
-                       coord_system=coord_system)
+    arguments = [SkyCoordArgument('origin'),
+                 RepeatedArgument([SizeArgument(), SizeArgument()], 'levels'),
+                 AngleArgument('angle')]
 
 
 class Box(Shape):
-    def __init__(self, origin, width, height, angle, coord_system,
-                 properties={}):
-        Shape.__init__(self, coord_system, properties)
-
-        self.origin = origin
-        self.width = width
-        self.height = height
-        self.angle = angle
-
-    @property
-    def coord_list(self):
-        lon, lat = _get_xy(self.origin)
-        width = _get_angle_or_size(self.width)
-        height = _get_angle_or_size(self.height)
-        angle = _get_angle_or_size(self.angle)
-        return [lon, lat, width, height, angle]
-
-    @staticmethod
-    def from_coordlist(coordlist, coord_system, properties={}):
-        if len(coordlist) != 5:
-            raise ValueError(("Box created with %s, expected an origin, "
-                              "width, height, and angle of rotation") %
-                             repr(coordlist))
-        origin = _parse_coordinate(coordlist[0], coordlist[1], coord_system)
-        width = _parse_size(coordlist[2])
-        height = _parse_size(coordlist[3])
-        angle = _parse_angle(coordlist[4])
-
-        return Box(origin, width, height, angle, coord_system, properties)
+    arguments = [SkyCoordArgument('origin'), SizeArgument('width'),
+                 SizeArgument('height'), AngleArgument('angle')]
