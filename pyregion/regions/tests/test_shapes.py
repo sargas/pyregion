@@ -1,3 +1,4 @@
+""" Test initalization and other aspects of Shape objects """
 from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 
@@ -5,9 +6,7 @@ import pytest
 from astropy.coordinates import Angle, Longitude, Latitude, SkyCoord
 from astropy import units as u
 from numpy.testing import assert_allclose
-from .. import Box, Circle, Ellipse, DS9InconsistentArguments
-
-""" Test initalization and other aspects of Shape objects """
+from .. import DS9InconsistentArguments, Box, Circle, Ellipse, Panda, Polygon
 
 
 def test_circle():
@@ -95,7 +94,7 @@ def test_box():
     sc = SkyCoord(lon, lat)
     width, height = Angle(4, u.arcsecond), 10*u.pixel
     rot_angle = Angle('4"')
-    c = Box(sc, width, height, rot_angle, coord_system="icrs")
+    c = Box(sc, [(width, height)], rot_angle, coord_system="icrs")
     assert c.origin.data.lon == lon
     assert c.origin.data.lat == lat
     assert c.width == width
@@ -120,3 +119,40 @@ def test_box_errors():
 
     with pytest.raises(DS9InconsistentArguments):
         Box.from_coordlist(['1', '2', '3', '4', '5', '6'], "icrs")
+
+
+def test_box_annulus():
+    sc = SkyCoord('44d', '2d')
+    angles = [Angle('1d'), Angle('2d'), Angle('3d'), Angle('4d')]
+    result = Box(sc, [(angles[0], angles[1]), (angles[2], angles[3])],
+                 angles[0], coord_system='icrs')
+    assert result.levels == [(angles[0], angles[1]), (angles[2], angles[3])]
+    assert result.width == angles[0]
+    assert result.height == angles[1]
+    assert result.coord_list == [44, 2, 1, 2, 3, 4, 1]
+
+
+def test_polygon():
+    points = [SkyCoord('1d 4d'), SkyCoord('2d 5d'), SkyCoord('3d 6d'),
+              SkyCoord('4d 7d')]
+    result = Polygon(points, coord_system='icrs')
+    assert result.points == points
+    assert result.coord_list == [1, 4, 2, 5, 3, 6, 4, 7]
+
+
+def test_panda():
+    origin = SkyCoord('1d 2d')
+    angles = [Angle('3d'), Angle('4d')]
+    nangle = 3
+    sizes = [5*u.pixel, 6*u.pixel]
+    nradius = 5
+    result = Panda(origin, angles[0], angles[1], nangle, sizes[0], sizes[1],
+                   nradius, coord_system='ircs')
+    assert result.origin == origin
+    assert result.start_angle == angles[0]
+    assert result.stop_angle == angles[1]
+    assert result.nangle == nangle
+    assert result.inner == sizes[0]
+    assert result.outer == sizes[1]
+    assert result.nradius == nradius
+    assert result.coord_list == [1, 2, 3, 4, 3, 5, 6, 5]

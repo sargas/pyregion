@@ -1,8 +1,8 @@
 from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 
-from .._parsing_helpers import AngleArgument, RepeatedArgument, SizeArgument
-from .._parsing_helpers import SkyCoordArgument
+from .._parsing_helpers import AngleArgument, IntegerArgument, RepeatedArgument
+from .._parsing_helpers import SizeArgument, SkyCoordArgument
 from .. import DS9ParsingException, DS9InconsistentArguments
 from astropy.coordinates import Longitude, Latitude
 from astropy import units as u
@@ -151,3 +151,14 @@ def test_repeatedargument():
 
     with pytest.raises(DS9InconsistentArguments):
         repeated_arg.from_coords(deque([1, 2]), '')
+
+
+def test_integerargument():
+    int_arg = IntegerArgument()
+    coords = deque(['4', None, None])
+    assert int_arg.from_coords(coords, '') == 4
+    assert len(coords) == 2
+    assert int_arg.to_coords(2) == [2]
+
+    with pytest.raises(DS9InconsistentArguments):
+        int_arg.from_coords(deque(['1.3']), '')

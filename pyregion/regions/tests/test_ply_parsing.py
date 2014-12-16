@@ -206,7 +206,7 @@ def test_unsupported():
         parse_region_string('tile 2; circle 1 2 3')
 
 
-def test_other_shapes():
+def test_parse_ellipse():
     result = parse_region_string('ellipse 1 2 3 4 5')
     assert len(result) == 1
     assert result[0].origin.data.x == 1*u.pixel
@@ -215,6 +215,8 @@ def test_other_shapes():
     assert result[0].levels[0] == (3*u.pixel, 4*u.pixel)
     assert result[0].angle == Angle(5, u.degree)
 
+
+def test_parse_box():
     result = parse_region_string('box 1 2 3 4 5')
     assert len(result) == 1
     assert result[0].origin.data.x == 1*u.pixel
@@ -222,3 +224,49 @@ def test_other_shapes():
     assert result[0].width == 3*u.pixel
     assert result[0].height == 4*u.pixel
     assert result[0].angle == Angle(5, u.degree)
+
+    result = parse_region_string('rotbox 1 2 3 4 5')
+    assert len(result) == 1
+    assert result[0].origin.data.x == 1*u.pixel
+    assert result[0].origin.data.y == 2*u.pixel
+    assert result[0].width == 3*u.pixel
+    assert result[0].height == 4*u.pixel
+    assert result[0].angle == Angle(5, u.degree)
+
+    result = parse_region_string('box 1 2 3 4 5 6 7')
+    assert len(result) == 1
+    assert result[0].origin.data.x == 1*u.pixel
+    assert result[0].origin.data.y == 2*u.pixel
+    assert result[0].width == 3*u.pixel
+    assert result[0].height == 4*u.pixel
+    assert len(result[0].levels) == 2
+    assert result[0].levels[0] == (3*u.pixel, 4*u.pixel)
+    assert result[0].levels[1] == (5*u.pixel, 6*u.pixel)
+    assert result[0].angle == Angle(7, u.degree)
+
+
+def test_parse_polygon():
+    result = parse_region_string('polygon 1 2 3 4 5 6')
+    assert len(result) == 1
+    result = result[0]
+    assert len(result.points) == 3
+    assert result.points[0].data.x == 1*u.pixel
+    assert result.points[0].data.y == 2*u.pixel
+    assert result.points[1].data.x == 3*u.pixel
+    assert result.points[1].data.y == 4*u.pixel
+    assert result.points[2].data.x == 5*u.pixel
+    assert result.points[2].data.y == 6*u.pixel
+
+
+def test_parse_panda():
+    result = parse_region_string('panda 1 2 3 4 5 6 7 8')
+    assert len(result) == 1
+    result = result[0]
+    assert result.origin.data.x == 1*u.pixel
+    assert result.origin.data.y == 2*u.pixel
+    assert result.start_angle == Angle('3d')
+    assert result.stop_angle == Angle('4d')
+    assert result.nangle == 5
+    assert result.inner == 6*u.pixel
+    assert result.outer == 7*u.pixel
+    assert result.nradius == 8

@@ -3,13 +3,14 @@ from __future__ import (absolute_import, division, print_function,
 
 from collections import deque
 from ._parsing_helpers import AngleArgument, DS9InconsistentArguments
+from ._parsing_helpers import IntegerArgument
 from ._parsing_helpers import RepeatedArgument, SizeArgument, SkyCoordArgument
 
 
-__all__ = ['Shape', 'Box', 'Circle', 'Ellipse']
+__all__ = ['Shape', 'Box', 'Circle', 'Ellipse', 'Panda', 'Polygon']
 
 
-class Properties:
+class Properties(object):
     # defaults from http://ds9.si.edu/ref/region.html
     _default_properties = {
         'text': '',
@@ -102,5 +103,30 @@ class Ellipse(Shape):
 
 
 class Box(Shape):
-    arguments = [SkyCoordArgument('origin'), SizeArgument('width'),
-                 SizeArgument('height'), AngleArgument('angle')]
+    arguments = [SkyCoordArgument('origin'),
+                 RepeatedArgument([SizeArgument(), SizeArgument()], 'levels'),
+                 AngleArgument('angle')]
+
+    @property
+    def width(self):
+        print(self.levels)
+        return self.levels[0][0]
+
+    @property
+    def height(self):
+        return self.levels[0][1]
+
+
+class Polygon(Shape):
+    arguments = [RepeatedArgument([SkyCoordArgument()], 'points')]
+
+
+class Panda(Shape):
+    arguments = [SkyCoordArgument('origin'),
+                 AngleArgument('start_angle'),
+                 AngleArgument('stop_angle'),
+                 IntegerArgument('nangle'),
+                 SizeArgument('inner'),
+                 SizeArgument('outer'),
+                 IntegerArgument('nradius'),
+                 ]

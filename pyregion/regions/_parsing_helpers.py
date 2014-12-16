@@ -14,7 +14,7 @@ class DS9InconsistentArguments(Exception):
     pass
 
 
-class Argument:
+class Argument(object):
     def __init__(self, name=None):
         self.name = name
 
@@ -111,8 +111,12 @@ class RepeatedArgument(Argument):
     def from_coords(self, coords, coord_system):
         new_coords = []
         while(len(coords) >= len(self.arguments)):
-            new_coords.append(tuple(_.from_coords(coords, coord_system)
-                                    for _ in self.arguments))
+            if len(self.arguments) == 1:
+                new_coords.append(self.arguments[0].from_coords(
+                    coords, coord_system))
+            else:
+                new_coords.append(tuple(_.from_coords(coords, coord_system)
+                                        for _ in self.arguments))
 
         if len(new_coords) == 0:
             raise DS9InconsistentArguments("Expected repeated numbers of "
@@ -121,10 +125,28 @@ class RepeatedArgument(Argument):
                                                                     coords))
         return new_coords
 
-    def to_coords(self, tuple_list):
-        coords = []
-        for tuple_item in tuple_list:
-            for argument, coord in zip(self.arguments, tuple_item):
-                coords.extend(argument.to_coords(coord))
+    def to_coords(self, coords):
+        new_coords = []
 
-        return coords
+        if len(self.arguments) == 1:
+            for coord in coords:
+                new_coords.extend(self.arguments[0].to_coords(coord))
+        else:
+            for tuple_item in coords:
+                for argument, coord in zip(self.arguments, tuple_item):
+                    new_coords.extend(argument.to_coords(coord))
+
+        return new_coords
+
+
+class IntegerArgument(Argument):
+    def from_coords(self, integer, coord_system):
+        value = integer.popleft()
+        try:
+            return int(value)
+        except ValueError as e:
+            raise DS9InconsistentArguments('Obtained {} when expecting an'
+                                           ' integer'.format(integer), e)
+
+    def to_coords(self, coord):
+        return [coord]
