@@ -7,7 +7,7 @@ from ._parsing_helpers import IntegerArgument
 from ._parsing_helpers import RepeatedArgument, SizeArgument, SkyCoordArgument
 
 
-__all__ = ['Shape', 'Box', 'Circle', 'Ellipse', 'Panda', 'Polygon']
+__all__ = ['Shape', 'Box', 'Circle', 'Ellipse', 'Panda', 'Point', 'Polygon']
 
 
 class Properties(object):
@@ -51,7 +51,7 @@ class Properties(object):
 
 class Shape(object):
     def __init__(self, *args, **kwargs):
-        self.coord_system = kwargs['coord_system']
+        self.coord_system = kwargs.get('coord_system', None)
         self.properties = Properties(kwargs.get('properties', {}))
         for argument, value in zip(self.arguments, args):
             setattr(self, argument.name, value)
@@ -130,3 +130,15 @@ class Panda(Shape):
                  SizeArgument('outer'),
                  IntegerArgument('nradius'),
                  ]
+
+
+class Point(Shape):
+    arguments = [SkyCoordArgument('origin')]
+
+    @property
+    def point_type(self):
+        return self.properties.point[0]
+
+    @property
+    def point_size(self):
+        return float(self.properties.point[1])

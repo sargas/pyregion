@@ -1,5 +1,5 @@
 import os
-from .core import Box, Circle, Ellipse, Panda, Polygon
+from .core import Box, Circle, Ellipse, Panda, Point, Polygon
 from ._parsing_helpers import DS9ParsingException
 
 
@@ -43,6 +43,7 @@ class DS9Parser:
             'rotbox': Box,
             'polygon': Polygon,
             'panda': Panda,
+            'point': Point,
         }
 
         @lex.TOKEN(r'|'.join(SHAPES))

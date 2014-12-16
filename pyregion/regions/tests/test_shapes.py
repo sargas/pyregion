@@ -6,7 +6,8 @@ import pytest
 from astropy.coordinates import Angle, Longitude, Latitude, SkyCoord
 from astropy import units as u
 from numpy.testing import assert_allclose
-from .. import DS9InconsistentArguments, Box, Circle, Ellipse, Panda, Polygon
+from .. import DS9InconsistentArguments, Box, Circle, Ellipse, Panda, Point
+from .. import Polygon
 
 
 def test_circle():
@@ -156,3 +157,11 @@ def test_panda():
     assert result.outer == sizes[1]
     assert result.nradius == nradius
     assert result.coord_list == [1, 2, 3, 4, 3, 5, 6, 5]
+
+def test_point():
+    origin = SkyCoord('1d 2d')
+    result = Point(origin, properties={'point': ('box', '6.4')})
+    assert result.origin == origin
+    assert result.point_type == 'box'
+    assert result.point_size == 6.4
+    assert result.coord_list == [1, 2]

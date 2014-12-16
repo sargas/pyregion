@@ -135,13 +135,13 @@ def test_missing_arguments():
 
 def test_repeatedargument():
     class MockArg:
-        def from_coords(coords, coord_system):
+        def from_coords(self, coords, coord_system):
             return coords.popleft() + 1
 
-        def to_coords(coord):
+        def to_coords(self, coord):
             return [coord - 1]
 
-    repeated_arg = RepeatedArgument([MockArg, MockArg, MockArg])
+    repeated_arg = RepeatedArgument([MockArg(), MockArg(), MockArg()])
 
     coords = deque([1, 2, 3, 4, 5, 6])
     assert repeated_arg.from_coords(coords, '') == [(2, 3, 4), (5, 6, 7)]
