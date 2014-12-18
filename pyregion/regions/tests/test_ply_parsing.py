@@ -2,7 +2,7 @@ from astropy import units as u
 from astropy.coordinates import Angle
 import pytest
 from .._ply_helper import parse_region_string
-from .. import DS9ParsingException
+from .. import ShapeList, DS9ParsingException
 
 
 @pytest.mark.parametrize(("reg_string", "x", "y", "radius"), [
@@ -13,6 +13,7 @@ from .. import DS9ParsingException
 ])
 def test_ply_parsing(reg_string, x, y, radius):
     result = parse_region_string(reg_string)
+    assert isinstance(result, ShapeList)
     assert len(result) == 1
     test_circle = result[0]
 
@@ -39,6 +40,7 @@ def test_delimiters(reg_string, x, y, radius):
 def test_multiple_circles():
     result = parse_region_string("circle(1,2,3);circle(4,5,6);")
 
+    assert isinstance(result, ShapeList)
     assert len(result) == 2
     assert result[0].origin.data.x == 1*u.pixel
     assert result[0].origin.data.y == 2*u.pixel

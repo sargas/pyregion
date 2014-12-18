@@ -7,8 +7,32 @@ from ._parsing_helpers import IntegerArgument
 from ._parsing_helpers import RepeatedArgument, SizeArgument, SkyCoordArgument
 
 
-__all__ = ['Shape', 'Bpanda', 'Box', 'Circle', 'Epanda', 'Ellipse', 'Panda',
-           'Point', 'Polygon']
+__all__ = ['Shape', 'ShapeList', 'Bpanda', 'Box', 'Circle', 'Epanda',
+           'Ellipse', 'Panda', 'Point', 'Polygon']
+
+
+class ShapeList(object):
+    def __init__(self, shapes):
+        self._shapes = shapes
+
+    def __len__(self):
+        return len(self._shapes)
+
+    def __length_hint__(self):
+        return self._shapes.__length_hint()
+
+    def __getitem__(self, key):
+        if isinstance(key, slice):
+            return ShapeList(self._shapes.__getitem__(key))
+        else:
+            return self._shapes.__getitem__(key)
+
+    def __iter__(self):
+        return self._shapes.__iter__()
+
+    def check_imagecoord(self):
+        '''Perhaps should be `coord_system in frames.*` ?'''
+        return any(s.coord_system == 'image' for s in self)
 
 
 class Properties(object):

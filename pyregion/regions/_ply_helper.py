@@ -1,4 +1,5 @@
 import os
+from .core import ShapeList
 from .core import Box, Bpanda, Circle, Ellipse, Epanda, Panda, Point, Polygon
 from ._parsing_helpers import DS9ParsingException
 
@@ -272,4 +273,4 @@ class DS9Parser:
 
 
 def parse_region_string(data, debug=False):
-    return DS9Parser().parse(data, debug=debug)
+    return ShapeList(DS9Parser().parse(data, debug=debug))
