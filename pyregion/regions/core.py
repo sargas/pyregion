@@ -7,7 +7,8 @@ from ._parsing_helpers import IntegerArgument
 from ._parsing_helpers import RepeatedArgument, SizeArgument, SkyCoordArgument
 
 
-__all__ = ['Shape', 'Box', 'Circle', 'Ellipse', 'Panda', 'Point', 'Polygon']
+__all__ = ['Shape', 'Bpanda', 'Box', 'Circle', 'Epanda', 'Ellipse', 'Panda',
+           'Point', 'Polygon']
 
 
 class Properties(object):
@@ -32,7 +33,7 @@ class Properties(object):
 
     def __getattr__(self, name):
         BOOLEAN_PROPERTIES = ['select', 'highlight', 'dash', 'fixed', 'edit',
-                              'move', 'rotate', 'delete']
+                              'move', 'rotate', 'delete', 'include']
         if name in BOOLEAN_PROPERTIES:
                 return self._properties[name] == '1'
         elif name in self._properties:
@@ -142,3 +143,27 @@ class Point(Shape):
     @property
     def point_size(self):
         return float(self.properties.point[1])
+
+
+class Epanda(Shape):
+    arguments = [SkyCoordArgument('origin'),
+                 AngleArgument('start_angle'),
+                 AngleArgument('stop_angle'),
+                 IntegerArgument('nangle'),
+                 SizeArgument('inner'),
+                 SizeArgument('outer'),
+                 IntegerArgument('nradius'),
+                 AngleArgument('angle'),
+                 ]
+
+
+class Bpanda(Shape):
+    arguments = [SkyCoordArgument('origin'),
+                 AngleArgument('start_angle'),
+                 AngleArgument('stop_angle'),
+                 IntegerArgument('nangle'),
+                 SizeArgument('inner'),
+                 SizeArgument('outer'),
+                 IntegerArgument('nradius'),
+                 AngleArgument('angle'),
+                 ]

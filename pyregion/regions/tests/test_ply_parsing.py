@@ -9,6 +9,7 @@ from .. import DS9ParsingException
     ("circle 5 3 54", 5*u.pixel, 3*u.pixel, 54*u.pixel),
     ("circle(5,4,54)", 5*u.pixel, 4*u.pixel, 54*u.pixel),
     ("circle(5 4 54)", 5*u.pixel, 4*u.pixel, 54*u.pixel),
+    ("circle(-5 4 -54)", -5*u.pixel, 4*u.pixel, -54*u.pixel),
 ])
 def test_ply_parsing(reg_string, x, y, radius):
     result = parse_region_string(reg_string)
@@ -130,27 +131,31 @@ def test_properties():
 
 
 def test_source_background_properties():
-    result = parse_region_string(' circle 1 2 3 # color="yellow"'
+    result = parse_region_string('circle 1 2 3 # color="yellow"'
                                  ' dashlist = 8 3')[0]
     assert result.properties.color == 'yellow'
     assert result.properties.dashlist == ('8', '3')
     assert result.properties.is_source
     assert not result.properties.is_background
 
-    result = parse_region_string(' circle 1 2 3 # edit=1 source background')[0]
+    result = parse_region_string('circle 1 2 3 # edit=1 source background')[0]
     assert result.properties.edit
     assert not result.properties.is_source
     assert result.properties.is_background
 
-    result = parse_region_string(' circle 1 2 3 # edit=1 background')[0]
+    result = parse_region_string('circle 1 2 3 # edit=1 background')[0]
     assert result.properties.edit
     assert not result.properties.is_source
     assert result.properties.is_background
 
-    result = parse_region_string(' circle 1 2 3 # background edit=1')[0]
+    result = parse_region_string('circle 1 2 3 # background edit=1')[0]
     assert result.properties.edit
     assert not result.properties.is_source
     assert result.properties.is_background
+
+    result = parse_region_string('global source=0\ncircle 1 2 3')[0]
+    assert result.properties.is_background
+    assert not result.properties.is_source
 
 
 def test_tags():
@@ -196,6 +201,11 @@ def test_include_flag():
     assert not result[0].properties.include
     assert result[1].properties.include
     assert result[2].properties.include
+
+    result = parse_region_string('global include=0\n'
+                                 'circle 1 2 3;+circle 1 2 3')
+    assert not result[0].properties.include
+    assert result[1].properties.include
 
 
 def test_unsupported():

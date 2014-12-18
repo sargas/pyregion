@@ -1,5 +1,5 @@
 import os
-from .core import Box, Circle, Ellipse, Panda, Point, Polygon
+from .core import Box, Bpanda, Circle, Ellipse, Epanda, Panda, Point, Polygon
 from ._parsing_helpers import DS9ParsingException
 
 
@@ -15,7 +15,6 @@ class DS9Parser:
         literals = ['(', ')', ',']
         tokens = (
             'PROPERTY',
-            'CIRCLE',
             'DELIMITER',
             'PROPONEARG',
             'PROPTWOARG',
@@ -44,6 +43,8 @@ class DS9Parser:
             'polygon': Polygon,
             'panda': Panda,
             'point': Point,
+            'bpanda': Bpanda,
+            'epanda': Epanda,
         }
 
         @lex.TOKEN(r'|'.join(SHAPES))
@@ -54,7 +55,7 @@ class DS9Parser:
 
         def t_INCLUDEFLAG(t):
             r'\+|-'
-            t.value = {'include': t.value == '+'}
+            t.value = {'include': '1' if t.value == '+' else '0'}
             return t
 
         def t_GLOBAL(t):
@@ -86,7 +87,7 @@ class DS9Parser:
             pass
 
         def t_proplist_PROPERTY(t):
-            r'[\d.:hdms"\'pir]+'
+            r'-?[\d.:hdms"\'pir]+'
             return t
 
         def t_proplist_DELIMITER(t):
@@ -101,7 +102,7 @@ class DS9Parser:
 
         one_arg_properties = ['color', 'text', 'width', 'font', 'select',
                               'highlite', 'dash', 'fixed', 'edit', 'move',
-                              'rotate', 'delete', 'ruler']
+                              'rotate', 'delete', 'ruler', 'include']
         two_arg_properties = ['dashlist', 'line', 'point']
         no_arg_properties = ['source', 'background']
 
@@ -226,8 +227,16 @@ class DS9Parser:
             p[0] = {p[1]: (p[3], p[4])}
 
         def p_no_argument_property(p):
-            ''' commentproperty : PROPNOARG '''
-            p[0] = {'sourcebackground': p[1]}
+            ''' commentproperty : PROPNOARG
+                                | PROPNOARG EQ parameter'''
+            if len(p) == 2:
+                p[0] = {'sourcebackground': p[1]}
+            else:
+                if (((p[1] == 'source' and p[3] == '1') or
+                     (p[1] == 'background' and p[3] == '0'))):
+                    p[0] = {'sourcebackground': 'source'}
+                else:
+                    p[0] = {'sourcebackground': 'background'}
 
         def p_tag(p):
             '''commentproperty : TAG EQ parameter'''

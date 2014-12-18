@@ -6,7 +6,8 @@ import pytest
 from astropy.coordinates import Angle, Longitude, Latitude, SkyCoord
 from astropy import units as u
 from numpy.testing import assert_allclose
-from .. import DS9InconsistentArguments, Box, Circle, Ellipse, Panda, Point
+from .. import DS9InconsistentArguments, Bpanda, Box, Circle, Epanda, Ellipse
+from .. import Panda, Point
 from .. import Polygon
 
 
@@ -157,6 +158,47 @@ def test_panda():
     assert result.outer == sizes[1]
     assert result.nradius == nradius
     assert result.coord_list == [1, 2, 3, 4, 3, 5, 6, 5]
+
+
+def test_epanda():
+    origin = SkyCoord('1d 2d')
+    angles = [Angle('3d'), Angle('4d')]
+    nangle = 3
+    sizes = [5*u.pixel, 6*u.pixel]
+    nradius = 5
+    angle = Angle('9d')
+    result = Epanda(origin, angles[0], angles[1], nangle, sizes[0], sizes[1],
+                    nradius, angle, coord_system='ircs')
+    assert result.origin == origin
+    assert result.start_angle == angles[0]
+    assert result.stop_angle == angles[1]
+    assert result.nangle == nangle
+    assert result.inner == sizes[0]
+    assert result.outer == sizes[1]
+    assert result.nradius == nradius
+    assert result.angle == angle
+    assert result.coord_list == [1, 2, 3, 4, 3, 5, 6, 5, 9]
+
+
+def test_bpanda():
+    origin = SkyCoord('1d 2d')
+    angles = [Angle('3d'), Angle('4d')]
+    nangle = 3
+    sizes = [5*u.pixel, 6*u.pixel]
+    nradius = 5
+    angle = Angle('9d')
+    result = Bpanda(origin, angles[0], angles[1], nangle, sizes[0], sizes[1],
+                    nradius, angle, coord_system='ircs')
+    assert result.origin == origin
+    assert result.start_angle == angles[0]
+    assert result.stop_angle == angles[1]
+    assert result.nangle == nangle
+    assert result.inner == sizes[0]
+    assert result.outer == sizes[1]
+    assert result.nradius == nradius
+    assert result.angle == angle
+    assert result.coord_list == [1, 2, 3, 4, 3, 5, 6, 5, 9]
+
 
 def test_point():
     origin = SkyCoord('1d 2d')
