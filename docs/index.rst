@@ -24,6 +24,8 @@ Documentation
    users/index.rst
    examples.rst
 
+   pyregion/index.rst
+
 
 .. note::
   *pyregion* is rather slow, likely due to a inefficient
