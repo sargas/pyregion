@@ -159,6 +159,10 @@ def test_source_background_properties():
     assert result.properties.is_background
     assert not result.properties.is_source
 
+    result = parse_region_string('global source=1\ncircle 1 2 3')[0]
+    assert result.properties.is_source
+    assert not result.properties.is_background
+
 
 def test_tags():
     result = parse_region_string('circle 1 2 3 # color={yellow}')[0]

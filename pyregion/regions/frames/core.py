@@ -18,6 +18,7 @@ class _2DCartesianRepresentation(CartesianRepresentation):
 
 
 class Image(BaseCoordinateFrame):
+    "Image coordinate frame"
     default_representation = _2DCartesianRepresentation
 
     frame_specific_representation_info = {

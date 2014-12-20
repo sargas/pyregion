@@ -7,10 +7,12 @@ from astropy import units as u
 
 
 class DS9ParsingException(Exception):
+    "Parsing exception for DS9/CIAO Region files"
     pass
 
 
 class DS9InconsistentArguments(Exception):
+    "Exception for shapes specified with incorrect arguments"
     pass
 
 

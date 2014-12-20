@@ -1,8 +1,8 @@
 .. _limitations:
 
-**********
+***********
 Limitations
-**********
+***********
 
 *pyregion* is not complete. There are valid region files accepted by ds9 which
 are not parsed by the current code, and implementation differences.

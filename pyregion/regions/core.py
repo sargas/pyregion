@@ -8,18 +8,25 @@ from ._parsing_helpers import RepeatedArgument, SizeArgument, SkyCoordArgument
 
 
 __all__ = ['Shape', 'ShapeList', 'Bpanda', 'Box', 'Circle', 'Epanda',
-           'Ellipse', 'Panda', 'Point', 'Polygon']
+           'Ellipse', 'Panda', 'Point', 'Polygon', 'Properties']
 
 
 class ShapeList(object):
+    """List of Shapes in a DS9 Region file
+
+    This class provides convience methods for dealing with the shapes found
+    in a DS9 region. The shapes are retrievable as in a normal list.
+
+    Parameters
+    ----------
+    shapes : list of `Shape`
+        shapes to include
+    """
     def __init__(self, shapes):
         self._shapes = shapes
 
     def __len__(self):
         return len(self._shapes)
-
-    def __length_hint__(self):
-        return self._shapes.__length_hint()
 
     def __getitem__(self, key):
         if isinstance(key, slice):
@@ -31,11 +38,53 @@ class ShapeList(object):
         return self._shapes.__iter__()
 
     def check_imagecoord(self):
-        '''Perhaps should be `coord_system in frames.*` ?'''
+        """Checks if this ShapeList includes image-based coordinates
+
+        Returns
+        -------
+        bool
+            True if any `Shape`.coord_system is an image coordinate
+        """
+        # Perhaps should be `coord_system in frames.*`
         return any(s.coord_system == 'image' for s in self)
 
 
 class Properties(object):
+    """Container for properties held by shapes
+
+    The specifications for these properties come from
+    `DS9 <http://ds9.si.edu/ref/region.html>`_.
+
+    Parameters
+    ----------
+    properties : dict, optional
+        Properties to record
+
+    Attributes
+    ----------
+    text : str
+        The text displayed with this shape
+    color : {white, black, red, green, blue, cyan, magenta, yellow}
+        The color of the region when rendered
+    font : str
+        Font family, size, weight and slant of text
+    select : bool
+        Whether this shape is selectable
+    edit : bool
+        Whether this shape is editable in DS9
+    move : bool
+        Whether this shape is movable in DS9
+    delete : bool
+        Whether this shape is deletable in DS9
+    highlite : bool
+        Whether this shape can be highlited in DS9
+    include : bool
+        Whether this shape is marked as included in this region
+    fixed : bool
+        Whether this shape stays fixed in size regardless of zoom in DS9
+    tag : list of str
+        List of tags associated with this shape
+    """
     # defaults from http://ds9.si.edu/ref/region.html
     _default_properties = {
         'text': '',
@@ -67,39 +116,83 @@ class Properties(object):
 
     @property
     def is_source(self):
+        """Whether this shape is flagged 'source'"""
         return self._properties.get('sourcebackground', 'source') == 'source'
 
     @property
     def is_background(self):
+        """Whether this shape is flagged 'background'"""
         return not self.is_source
 
 
 class Shape(object):
+    """A DS9/CIAO Shape
+
+    Parameters
+    ----------
+    properties : dict
+        Properties of the shape
+    coord_system : str
+        Coordinate system used for angles and radii
+
+    Attributes
+    ----------
+    properties :
+        Properties of the shape.
+    coord_system : str
+        Coordinate system used for angles and radii
+    """
     def __init__(self, *args, **kwargs):
         self.coord_system = kwargs.get('coord_system', None)
         self.properties = Properties(kwargs.get('properties', {}))
-        for argument, value in zip(self.arguments, args):
+        for argument, value in zip(self._arguments, args):
             setattr(self, argument.name, value)
 
     @property
     def coord_format(self):
-        """ Old name kept for compatibility """
+        """Coordinate system
+
+        See Also
+        --------
+        coord_system
+        """
         return self.coord_system
 
     @property
     def name(self):
+        """name of this shape"""
         return type(self).__name__.lower()
 
     @property
     def tag(self):
+        """List of tags"""
         return self.properties.tag
 
     @classmethod
     def from_coordlist(cls, coordlist, coord_system, properties={}):
+        """Create new shape from coordinate list
+
+        This function parses a list of strings of a known coordinate system
+        into a shape
+
+        Parameters
+        ----------
+        coordlist : array_like
+            List of strings giving each argument to the shape consturctor
+        coord_system : str
+            Name of DS9/CIAO coordinate system. Can be 'image'
+        properties : dict, optional
+            Dict of properties to initialize shape with
+
+        Returns
+        -------
+        A new instance. The type depends on which subclass of `Shape`
+        this is called from.
+        """
 
         coords = deque(coordlist)
         args = [argument.from_coords(coords, coord_system)
-                for argument in cls.arguments]
+                for argument in cls._arguments]
 
         if len(coords) > 0:
             raise DS9InconsistentArguments(
@@ -110,84 +203,235 @@ class Shape(object):
 
     @property
     def coord_list(self):
+        """List of coordinates
+
+        This is the coordinates as floats in the current coord_system
+        """
         coordlist = []
-        for argument in self.arguments:
+        for argument in self._arguments:
             coordlist.extend(argument.to_coords(getattr(self, argument.name)))
 
         return coordlist
 
 
 class Circle(Shape):
-    arguments = [SkyCoordArgument('origin'), SizeArgument('radius')]
+    """Circle Shape
+
+    Parameters
+    ----------
+    origin : `~astropy.coordinates.SkyCoord`
+        Center of this shape
+    radius : `~astropy.units.Quantity` or `~astropy.coordinates.Angle`
+        Radius of circle
+    properties : dict
+        Properties of the shape
+    coord_system : str
+        Coordinate system used for angles and radii
+    """
+    _arguments = [SkyCoordArgument('origin'), SizeArgument('radius')]
 
 
 class Ellipse(Shape):
-    arguments = [SkyCoordArgument('origin'),
-                 RepeatedArgument([SizeArgument(), SizeArgument()], 'levels'),
-                 AngleArgument('angle')]
+    """Ellipse Shape
+
+    Parameters
+    ----------
+    origin : `~astropy.coordinates.SkyCoord`
+        Center of this shape
+    levels : list of tuple pairs of `~astropy.units.Quantity`
+        List of semi-major and semi-minor axes for each annulus
+    angle : `~astropy.coordinates.Angle`
+        Rotation angle
+    properties : dict
+        Properties of the shape
+    coord_system : str
+        Coordinate system used for angles and radii
+    """
+    _arguments = [SkyCoordArgument('origin'),
+                  RepeatedArgument([SizeArgument(), SizeArgument()], 'levels'),
+                  AngleArgument('angle')]
 
 
 class Box(Shape):
-    arguments = [SkyCoordArgument('origin'),
-                 RepeatedArgument([SizeArgument(), SizeArgument()], 'levels'),
-                 AngleArgument('angle')]
+    """Box Shape
+
+    Parameters
+    ----------
+    origin : `~astropy.coordinates.SkyCoord`
+        Center of this shape
+    levels : list of tuple pairs of `~astropy.units.Quantity`
+        List of widths and heights for each annulus
+    angle : `~astropy.coordinates.Angle`
+        Rotation angle
+    properties : dict
+        Properties of the shape
+    coord_system : str
+        Coordinate system used for angles and radii
+    """
+    _arguments = [SkyCoordArgument('origin'),
+                  RepeatedArgument([SizeArgument(), SizeArgument()], 'levels'),
+                  AngleArgument('angle')]
 
     @property
     def width(self):
-        print(self.levels)
+        "Width of Box or smallest Box in annulus"
         return self.levels[0][0]
 
     @property
     def height(self):
+        "Height of Box or smallest Box in annulus"
         return self.levels[0][1]
 
 
 class Polygon(Shape):
-    arguments = [RepeatedArgument([SkyCoordArgument()], 'points')]
+    """Polygon Shape
+
+    Parameters
+    ----------
+    points : array_like of `~astropy.coordinates.SkyCoord`
+        Vertices of this polygon
+    properties : dict
+        Properties of the shape
+    coord_system : str
+        Coordinate system used for angles and radii
+    """
+    _arguments = [RepeatedArgument([SkyCoordArgument()], 'points')]
 
 
 class Panda(Shape):
-    arguments = [SkyCoordArgument('origin'),
-                 AngleArgument('start_angle'),
-                 AngleArgument('stop_angle'),
-                 IntegerArgument('nangle'),
-                 SizeArgument('inner'),
-                 SizeArgument('outer'),
-                 IntegerArgument('nradius'),
-                 ]
+    """Pie and Annulus Shape
+
+    Parameters
+    ----------
+    origin : `~astropy.coordinates.SkyCoord`
+        Center of this shape
+    start_angle : `~astropy.coordinates.Angle`
+        First angle of the shape, as measured counter-clockwise from the X axis
+    stop_angle : `~astropy.coordinates.Angle`
+        Last angle of the shape, as measured counter-clockwise from the X axis
+    nangle : int
+        Number of angles between start_angle and stop_angle to use
+    inner : `~astropy.units.Quantity` or  `~astropy.coordinates.Angle`
+        Inner radius of the annulus
+    outer : `~astropy.units.Quantity` or  `~astropy.coordinates.Angle`
+        Outer radius of the annulus
+    nradius : int
+        Number of radii between inner and outer to use
+    properties : dict
+        Properties of the shape
+    coord_system : str
+        Coordinate system used for angles and radii
+    """
+    _arguments = [SkyCoordArgument('origin'),
+                  AngleArgument('start_angle'),
+                  AngleArgument('stop_angle'),
+                  IntegerArgument('nangle'),
+                  SizeArgument('inner'),
+                  SizeArgument('outer'),
+                  IntegerArgument('nradius'),
+                  ]
 
 
 class Point(Shape):
-    arguments = [SkyCoordArgument('origin')]
+    """Point Shape
+
+    Parameters
+    ----------
+    origin : `~astropy.coordinates.SkyCoord`
+        Location of this point
+    properties : dict
+        Properties of the shape
+    coord_system : str
+        Coordinate system used for angles and radii
+
+    Notes
+    -----
+    The type and size of this point is currently stored only as a property
+    passed to the constructor.
+    """
+    _arguments = [SkyCoordArgument('origin')]
 
     @property
     def point_type(self):
+        """Visualization of the point in DS9. Can be one of 'circle',\
+        'box', 'diamond', 'cross', 'x', 'arrow', or 'boxcircle' """
         return self.properties.point[0]
 
     @property
     def point_size(self):
+        """Size of the point"""
         return float(self.properties.point[1])
 
 
 class Epanda(Shape):
-    arguments = [SkyCoordArgument('origin'),
-                 AngleArgument('start_angle'),
-                 AngleArgument('stop_angle'),
-                 IntegerArgument('nangle'),
-                 SizeArgument('inner'),
-                 SizeArgument('outer'),
-                 IntegerArgument('nradius'),
-                 AngleArgument('angle'),
-                 ]
+    """Ellipse Pie and Annulus Shape
+
+    Parameters
+    ----------
+    origin : `~astropy.coordinates.SkyCoord`
+        Center of this shape
+    start_angle : `~astropy.coordinates.Angle`
+        First angle of the shape, as measured counter-clockwise from the X axis
+    stop_angle : `~astropy.coordinates.Angle`
+        Last angle of the shape, as measured counter-clockwise from the X axis
+    nangle : int
+        Number of angles between start_angle and stop_angle to use
+    inner : `~astropy.units.Quantity` or  `~astropy.coordinates.Angle`
+        Inner radius of the annulus
+    outer : `~astropy.units.Quantity` or  `~astropy.coordinates.Angle`
+        Outer radius of the annulus
+    nradius : int
+        Number of radii between inner and outer to use
+    angle : `~astropy.coordinates.Angle`
+        Rotation angle
+    properties : dict
+        Properties of the shape
+    coord_system : str
+        Coordinate system used for angles and radii
+    """
+    _arguments = [SkyCoordArgument('origin'),
+                  AngleArgument('start_angle'),
+                  AngleArgument('stop_angle'),
+                  IntegerArgument('nangle'),
+                  SizeArgument('inner'),
+                  SizeArgument('outer'),
+                  IntegerArgument('nradius'),
+                  AngleArgument('angle'),
+                  ]
 
 
 class Bpanda(Shape):
-    arguments = [SkyCoordArgument('origin'),
-                 AngleArgument('start_angle'),
-                 AngleArgument('stop_angle'),
-                 IntegerArgument('nangle'),
-                 SizeArgument('inner'),
-                 SizeArgument('outer'),
-                 IntegerArgument('nradius'),
-                 AngleArgument('angle'),
-                 ]
+    """Box Pie and Annulus Shape
+
+    Parameters
+    ----------
+    origin : `~astropy.coordinates.SkyCoord`
+        Center of this shape
+    start_angle : `~astropy.coordinates.Angle`
+        First angle of the shape, as measured counter-clockwise from the X axis
+    stop_angle : `~astropy.coordinates.Angle`
+        Last angle of the shape, as measured counter-clockwise from the X axis
+    nangle : int
+        Number of angles between start_angle and stop_angle to use
+    inner : `~astropy.units.Quantity` or  `~astropy.coordinates.Angle`
+        Inner radius of the annulus
+    outer : `~astropy.units.Quantity` or  `~astropy.coordinates.Angle`
+        Outer radius of the annulus
+    nradius : int
+        Number of radii between inner and outer to use
+    angle : `~astropy.coordinates.Angle`
+        Rotation angle
+    properties : dict
+        Properties of the shape
+    coord_system : str
+        Coordinate system used for angles and radii
+    """
+    _arguments = [SkyCoordArgument('origin'),
+                  AngleArgument('start_angle'),
+                  AngleArgument('stop_angle'),
+                  IntegerArgument('nangle'),
+                  SizeArgument('inner'),
+                  SizeArgument('outer'),
+                  IntegerArgument('nradius'),
+                  AngleArgument('angle'),
+                  ]

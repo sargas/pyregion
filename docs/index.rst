@@ -24,7 +24,7 @@ Documentation
    users/index.rst
    examples.rst
 
-   pyregion/index.rst
+   regions/index.rst
 
 
 .. note::
