@@ -4,7 +4,8 @@ from __future__ import (absolute_import, division, print_function,
 from .._parsing_helpers import AngleArgument, IntegerArgument, RepeatedArgument
 from .._parsing_helpers import SizeArgument, SkyCoordArgument
 from .. import DS9ParsingException, DS9InconsistentArguments
-from astropy.coordinates import Longitude, Latitude
+from ..frames import Image, Physical
+from astropy.coordinates import FK4, ICRS, Longitude, Latitude
 from astropy import units as u
 import pytest
 from numpy.testing.utils import assert_allclose
@@ -38,10 +39,10 @@ def test_parse_position_pixel(pixel_string, result):
 
 
 @pytest.mark.parametrize(('odd', 'even', 'is_pixel', 'system', 'coordlist'), [
-    ("4h3m1s", "41.25234d", False, 'icrs', (60.754166666666656, 41.25234)),
-    ("50", "100.0", True, 'icrs', (50, 100)),
-    ("4h3m1s", "41.25234d", False, 'fk4', (60.754166666666656, 41.25234)),
-    ("50", "100.0", True, 'fk4', (50, 100))
+    ("4h3m1s", "41.25234d", False, ICRS, (60.754166666666656, 41.25234)),
+    ("50", "100.0", True, Image, (50, 100)),
+    ("4h3m1s", "41.25234d", False, FK4, (60.754166666666656, 41.25234)),
+    ("50", "100.0", True, Physical, (50, 100))
 ])
 def test_skycoordargument(odd, even, is_pixel, system, coordlist):
     skycoord_arg = SkyCoordArgument()
@@ -50,11 +51,11 @@ def test_skycoordargument(odd, even, is_pixel, system, coordlist):
     if is_pixel:
         assert sc.data.x == float(odd)*u.pixel
         assert sc.data.y == float(even)*u.pixel
-        assert sc.frame.name != system
     else:
         assert sc.data.lon == Longitude(odd)
         assert sc.data.lat == Latitude(even)
-        assert sc.frame.name == system
+
+    assert sc.frame.name == system.name
 
     assert skycoord_arg.to_coords(sc) == coordlist
     assert len(coords) == 0

@@ -32,6 +32,18 @@ class Image(BaseCoordinateFrame):
     }
 
 
-Physical = Image
+class Physical(BaseCoordinateFrame):
+    "Physical coordinate frame"
+    default_representation = _2DCartesianRepresentation
+
+    frame_specific_representation_info = {
+        _2DCartesianRepresentation: [
+            RepresentationMapping(reprname='x', framename='X',
+                                  defaultunit=u.pixel),
+            RepresentationMapping(reprname='y', framename='Y',
+                                  defaultunit=u.pixel),
+            RepresentationMapping(reprname='z', framename='Z',
+                                  defaultunit=u.pixel)],
+    }
 Amplifier = Image
 Detector = Image

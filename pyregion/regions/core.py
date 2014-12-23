@@ -5,6 +5,7 @@ from collections import deque
 from ._parsing_helpers import AngleArgument, DS9InconsistentArguments
 from ._parsing_helpers import IntegerArgument
 from ._parsing_helpers import RepeatedArgument, SizeArgument, SkyCoordArgument
+from astropy.units import UnitsError
 
 
 __all__ = ['Shape', 'ShapeList', 'Bpanda', 'Box', 'Circle', 'Epanda',
@@ -139,7 +140,7 @@ class Shape(object):
     ----------
     properties :
         Properties of the shape.
-    coord_system : str
+    coord_system : `~astropy.coordinates.BaseCoordinateFrame`
         Coordinate system used for angles and radii
     """
     def __init__(self, *args, **kwargs):
@@ -150,13 +151,13 @@ class Shape(object):
 
     @property
     def coord_format(self):
-        """Coordinate system
+        """Name of coordinate system
 
         See Also
         --------
         coord_system
         """
-        return self.coord_system
+        return self.coord_system.name
 
     @property
     def name(self):
@@ -179,8 +180,8 @@ class Shape(object):
         ----------
         coordlist : array_like
             List of strings giving each argument to the shape consturctor
-        coord_system : str
-            Name of DS9/CIAO coordinate system. Can be 'image'
+        coord_system : `~astropy.coordinates.BaseCoordinateFrame`
+            Coordinate frame for parsing coordlist
         properties : dict, optional
             Dict of properties to initialize shape with
 
@@ -191,8 +192,14 @@ class Shape(object):
         """
 
         coords = deque(coordlist)
-        args = [argument.from_coords(coords, coord_system)
-                for argument in cls._arguments]
+        try:
+            args = [argument.from_coords(coords, coord_system)
+                    for argument in cls._arguments]
+        except UnitsError:
+            raise DS9InconsistentArguments('{} created with incorrect units'
+                                           ' for frame {}: {}'
+                                           .format(repr(cls), coord_system,
+                                                   coordlist))
 
         if len(coords) > 0:
             raise DS9InconsistentArguments(
@@ -225,7 +232,7 @@ class Circle(Shape):
         Radius of circle
     properties : dict
         Properties of the shape
-    coord_system : str
+    coord_system : `~astropy.coordinates.BaseCoordinateFrame`
         Coordinate system used for angles and radii
     """
     _arguments = [SkyCoordArgument('origin'), SizeArgument('radius')]
@@ -244,7 +251,7 @@ class Ellipse(Shape):
         Rotation angle
     properties : dict
         Properties of the shape
-    coord_system : str
+    coord_system : `~astropy.coordinates.BaseCoordinateFrame`
         Coordinate system used for angles and radii
     """
     _arguments = [SkyCoordArgument('origin'),
@@ -265,8 +272,8 @@ class Box(Shape):
         Rotation angle
     properties : dict
         Properties of the shape
-    coord_system : str
-        Coordinate system used for angles and radii
+    coord_system : `~astropy.coordinates.BaseCoordinateFrame`
+        Coordinate system used for angles and sizes
     """
     _arguments = [SkyCoordArgument('origin'),
                   RepeatedArgument([SizeArgument(), SizeArgument()], 'levels'),
@@ -292,8 +299,6 @@ class Polygon(Shape):
         Vertices of this polygon
     properties : dict
         Properties of the shape
-    coord_system : str
-        Coordinate system used for angles and radii
     """
     _arguments = [RepeatedArgument([SkyCoordArgument()], 'points')]
 
@@ -319,7 +324,7 @@ class Panda(Shape):
         Number of radii between inner and outer to use
     properties : dict
         Properties of the shape
-    coord_system : str
+    coord_system : `~astropy.coordinates.BaseCoordinateFrame`
         Coordinate system used for angles and radii
     """
     _arguments = [SkyCoordArgument('origin'),
@@ -341,8 +346,6 @@ class Point(Shape):
         Location of this point
     properties : dict
         Properties of the shape
-    coord_system : str
-        Coordinate system used for angles and radii
 
     Notes
     -----
@@ -386,7 +389,7 @@ class Epanda(Shape):
         Rotation angle
     properties : dict
         Properties of the shape
-    coord_system : str
+    coord_system : `~astropy.coordinates.BaseCoordinateFrame`
         Coordinate system used for angles and radii
     """
     _arguments = [SkyCoordArgument('origin'),
@@ -423,7 +426,7 @@ class Bpanda(Shape):
         Rotation angle
     properties : dict
         Properties of the shape
-    coord_system : str
+    coord_system : `~astropy.coordinates.BaseCoordinateFrame`
         Coordinate system used for angles and radii
     """
     _arguments = [SkyCoordArgument('origin'),

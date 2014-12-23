@@ -2,6 +2,8 @@ import os
 from .core import ShapeList
 from .core import Box, Bpanda, Circle, Ellipse, Epanda, Panda, Point, Polygon
 from ._parsing_helpers import DS9ParsingException
+from . import frames
+from astropy.coordinates import builtin_frames as astropy_frames
 
 
 class DS9Parser:
@@ -34,7 +36,24 @@ class DS9Parser:
             ('proplist', 'exclusive'),
             ('shapecomment', 'exclusive'),
         )
-        parser_state = {'system': 'fk5', 'global_properties': {}}
+
+        COORDINATE_SYSTEMS = {
+            'GALACTIC': astropy_frames.Galactic,
+            'ICRS': astropy_frames.ICRS,
+            'FK4': astropy_frames.FK4,
+            'B1950': astropy_frames.FK4,
+            'FK5': astropy_frames.FK5,
+            'J2000': astropy_frames.FK5,
+            'IMAGE': frames.Image,
+            'PHYSICAL': frames.Physical,
+            'DETECTOR': frames.Detector,
+            'AMPLIFIER': frames.Amplifier,
+        }
+
+        parser_state = {
+            'system': COORDINATE_SYSTEMS['PHYSICAL'],
+            'global_properties': {},
+        }
 
         SHAPES = {
             'circle': Circle,
@@ -74,13 +93,9 @@ class DS9Parser:
             raise DS9ParsingException('Specifying a specific tile in mosaic'
                                       ' images is unsupported at this time')
 
+        @lex.TOKEN(r'(?i)' + r'|'.join(COORDINATE_SYSTEMS))
         def t_COORDINATESYSTEM(t):
-            r'(?i)GALACTIC|ECLIPTIC|ICRS|FK4|FK5|J2000|B1950'
-            if t.value.lower() == 'j2000':
-                t.value = 'fk5'
-            elif t.value.lower() == 'b1950':
-                t.value = 'fk4'
-            parser_state['system'] = t.value.lower()
+            parser_state['system'] = COORDINATE_SYSTEMS[t.value.upper()]
             t.lexer.skip(1)
 
         def t_COMMENT(t):
@@ -88,7 +103,7 @@ class DS9Parser:
             pass
 
         def t_proplist_PROPERTY(t):
-            r'-?[\d.:hdms"\'pir]+'
+            r'(-|\+)?[\d.:hdms"\'pir]+'
             return t
 
         def t_proplist_DELIMITER(t):

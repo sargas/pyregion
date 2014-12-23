@@ -59,20 +59,22 @@ def test_errors():
 
 
 @pytest.mark.parametrize(("reg_string", "coordinate_systems"), [
-    ("circle(1d, 2d, 3d)", ["fk5"]),
-    ("circle(1d, 2d, 3d)\ncircle(2d,3d,4d)", ['fk5', 'fk5']),
+    ("circle(1, 2, 3)", ["physical"]),
+    ("fk5; circle(1d, 2d, 3d)", ["fk5"]),
+    ("fk5; circle(1d, 2d, 3d)\ncircle(2d,3d,4d)", ['fk5', 'fk5']),
+    ("image; circle(1,2,3); icrs\n circle(1d,2d,3d)", ['image', 'icrs']),
     ("galactic;circle(1d, 2d, 3d)", ["galactic"]),
-    ("circle(1d, 2d, 3d);galactic;circle(2d,3d,4d)", ['fk5', 'galactic']),
+    ("fk5; circle(1d, 2d, 3d);galactic;circle(2d,3d,4d)", ['fk5', 'galactic']),
     ("FK5;circle(1d, 2d, 3d);icrs;circle(2d,3d,4d)", ['fk5', 'icrs']),
     ("icrs;circle(1d, 2d, 3d);j2000;circle(2d,3d,4d)", ['icrs', 'fk5']),
-    ("circle(1d, 2d, 3d);B1950;circle(2d,3d,4d)", ['fk5', 'fk4']),
+    ("fk5;circle(1d, 2d, 3d);B1950;circle(2d,3d,4d)", ['fk5', 'fk4']),
 ])
 def test_coordinate_systems(reg_string, coordinate_systems):
     result = parse_region_string(reg_string)
     assert len(result) == len(coordinate_systems)
     for reg_object, reference_system in zip(result, coordinate_systems):
         assert reg_object.origin.frame.name == reference_system
-        assert reg_object.coord_system == reference_system
+        assert reg_object.coord_system.name == reference_system
 
 
 @pytest.mark.parametrize(("reg_string", "x", "y", "radius"), [

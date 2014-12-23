@@ -1,7 +1,6 @@
 from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 
-from .frames import Image
 from astropy.coordinates import Angle, SkyCoord, SphericalRepresentation
 from astropy import units as u
 
@@ -57,13 +56,9 @@ class SkyCoordArgument(Argument):
         odd_coordinate = self._parse_position(coords.popleft(), True)
         even_coordinate = self._parse_position(coords.popleft(), False)
 
-        if odd_coordinate.unit.is_equivalent(u.radian) and\
-           even_coordinate.unit.is_equivalent(u.radian):
+        if odd_coordinate.unit.is_equivalent(even_coordinate.unit):
             return SkyCoord(odd_coordinate, even_coordinate,
                             frame=coord_system)
-        elif (odd_coordinate.unit.is_equivalent(u.pixel) and
-              even_coordinate.unit.is_equivalent(u.pixel)):
-            return SkyCoord(odd_coordinate, even_coordinate, frame=Image)
         else:
             raise DS9ParsingException(
                 "Inconsistent units found when parsing coordinate."
@@ -112,7 +107,7 @@ class RepeatedArgument(Argument):
 
     def from_coords(self, coords, coord_system):
         new_coords = []
-        while(len(coords) >= len(self.arguments)):
+        while len(coords) >= len(self.arguments):
             if len(self.arguments) == 1:
                 new_coords.append(self.arguments[0].from_coords(
                     coords, coord_system))

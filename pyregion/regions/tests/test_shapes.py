@@ -3,34 +3,36 @@ from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 
 import pytest
-from astropy.coordinates import Angle, Longitude, Latitude, SkyCoord
+from astropy.coordinates import Angle, ICRS, Longitude, Latitude, SkyCoord
 from astropy import units as u
 from numpy.testing import assert_allclose
 from .. import DS9InconsistentArguments, Bpanda, Box, Circle, Epanda, Ellipse
 from .. import Panda, Point
 from .. import Polygon
+from ..frames import Image
 
 
 def test_circle():
     lon, lat = Longitude('2640', unit='arcminute'), Latitude('2d')
     sc = SkyCoord(lon, lat)
     radius_angle = Angle('4"')
-    c = Circle(sc, radius_angle, coord_system="icrs")
+    c = Circle(sc, radius_angle, coord_system=ICRS)
     assert c.origin.data.lon == lon
     assert c.origin.data.lat == lat
     assert c.origin.frame.name == sc.frame.name
     assert c.radius == radius_angle
     assert c.coord_list == [44, 2, 4/3600]
     assert c.coord_format == "icrs"
+    assert c.coord_system == ICRS
     assert c.name == 'circle'
 
 
 def test_circle_errors():
     with pytest.raises(DS9InconsistentArguments):
-        Circle.from_coordlist(['0'], coord_system="galactic")
+        Circle.from_coordlist(['0d'], coord_system="galactic")
 
     with pytest.raises(DS9InconsistentArguments):
-        Circle.from_coordlist(['1', '2', '3', '4'], coord_system="galactic")
+        Circle.from_coordlist(['1d', '2d', '3', '4'], coord_system="galactic")
 
 
 @pytest.mark.parametrize(('proplist', 'lon', 'lat', 'radius', 'system',
@@ -39,7 +41,7 @@ def test_circle_errors():
      [44, 2, 4/3600]),
     (['1d', '0.5d', '40'], Angle('1d'), Angle('.5d'), 40*u.pixel, 'galactic',
      [1, 0.5, 40]),
-    (['42', '5', '4"'], 42*u.pixel, 5*u.pixel, Angle('4"'), 'fk4',
+    (['42', '5', '4"'], 42*u.pixel, 5*u.pixel, Angle('4"'), Image,
      [42, 5, 4/3600]),
 ])
 def test_circle_from_coordlist(proplist, lon, lat, radius, system, coordlist):
@@ -73,7 +75,7 @@ def test_ellipse():
 
 def test_ellipse_from_coordlist():
     c = Ellipse.from_coordlist(['44', '2', '1"', '20d', '5d', '1"', '50'],
-                               'fk5')
+                               Image)
     assert c.origin.X == 44*u.pixel
     assert c.origin.Y == 2*u.pixel
     assert len(c.levels) == 2
