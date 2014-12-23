@@ -15,7 +15,7 @@ __all__ = ['Shape', 'ShapeList', 'Bpanda', 'Box', 'Circle', 'Epanda',
 class ShapeList(object):
     """List of Shapes in a DS9 Region file
 
-    This class provides convience methods for dealing with the shapes found
+    This class provides convenience methods for dealing with the shapes found
     in a DS9 region. The shapes are retrievable as in a normal list.
 
     Parameters
@@ -101,15 +101,20 @@ class Properties(object):
         'tag': []
     }
 
+    _BOOLEAN_PROPERTIES = ['select', 'highlight', 'dash', 'fixed', 'edit',
+                           'move', 'rotate', 'delete', 'include']
+
     def __init__(self, properties={}):
-        self._properties = self._default_properties.copy()
-        self._properties.update(properties)
+        if isinstance(properties, Properties):
+            self._properties = properties
+        else:
+            self._properties = self._default_properties.copy()
+            self._properties.update(properties)
 
     def __getattr__(self, name):
-        BOOLEAN_PROPERTIES = ['select', 'highlight', 'dash', 'fixed', 'edit',
-                              'move', 'rotate', 'delete', 'include']
-        if name in BOOLEAN_PROPERTIES:
-                return self._properties[name] == '1'
+
+        if name in self._BOOLEAN_PROPERTIES:
+            return self._properties[name] == '1'
         elif name in self._properties:
             return self._properties[name]
 
@@ -179,7 +184,7 @@ class Shape(object):
         Parameters
         ----------
         coordlist : array_like
-            List of strings giving each argument to the shape consturctor
+            List of strings giving each argument to the shape constructor
         coord_system : `~astropy.coordinates.BaseCoordinateFrame`
             Coordinate frame for parsing coordlist
         properties : dict, optional
@@ -281,12 +286,12 @@ class Box(Shape):
 
     @property
     def width(self):
-        "Width of Box or smallest Box in annulus"
+        """Width of Box or smallest Box in annulus"""
         return self.levels[0][0]
 
     @property
     def height(self):
-        "Height of Box or smallest Box in annulus"
+        """Height of Box or smallest Box in annulus"""
         return self.levels[0][1]
 
 

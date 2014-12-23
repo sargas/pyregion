@@ -1,4 +1,4 @@
-""" Test initalization and other aspects of Shape objects """
+""" Test initialization and other aspects of Shape objects """
 from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 
@@ -7,8 +7,7 @@ from astropy.coordinates import Angle, ICRS, Longitude, Latitude, SkyCoord
 from astropy import units as u
 from numpy.testing import assert_allclose
 from .. import DS9InconsistentArguments, Bpanda, Box, Circle, Epanda, Ellipse
-from .. import Panda, Point
-from .. import Polygon
+from .. import Panda, Point, Polygon
 from ..frames import Image
 
 
@@ -35,15 +34,16 @@ def test_circle_errors():
         Circle.from_coordlist(['1d', '2d', '3', '4'], coord_system="galactic")
 
 
-@pytest.mark.parametrize(('proplist', 'lon', 'lat', 'radius', 'system',
-                          'coordlist'), [
-    (['44d', '2d', '4"'], Angle('44d'), Angle('2d'), Angle('4"'), 'icrs',
-     [44, 2, 4/3600]),
-    (['1d', '0.5d', '40'], Angle('1d'), Angle('.5d'), 40*u.pixel, 'galactic',
-     [1, 0.5, 40]),
-    (['42', '5', '4"'], 42*u.pixel, 5*u.pixel, Angle('4"'), Image,
-     [42, 5, 4/3600]),
-])
+@pytest.mark.parametrize(
+    ('proplist', 'lon', 'lat', 'radius', 'system', 'coordlist'), [
+        (['44d', '2d', '4"'], Angle('44d'), Angle('2d'), Angle('4"'),
+         'icrs', [44, 2, 4/3600]),
+        (['1d', '0.5d', '40'], Angle('1d'), Angle('.5d'), 40*u.pixel,
+         'galactic', [1, 0.5, 40]),
+        (['42', '5', '4"'], 42*u.pixel, 5*u.pixel, Angle('4"'),
+         Image, [42, 5, 4/3600]),
+    ]
+)
 def test_circle_from_coordlist(proplist, lon, lat, radius, system, coordlist):
     c = Circle.from_coordlist(proplist, system)
     if lon.unit.is_equivalent(u.radian):

@@ -6,12 +6,12 @@ from astropy import units as u
 
 
 class DS9ParsingException(Exception):
-    "Parsing exception for DS9/CIAO Region files"
+    """Parsing exception for DS9/CIAO Region files"""
     pass
 
 
 class DS9InconsistentArguments(Exception):
-    "Exception for shapes specified with incorrect arguments"
+    """Exception for shapes specified with incorrect arguments"""
     pass
 
 
@@ -50,7 +50,7 @@ class SkyCoordArgument(Argument):
 
     def from_coords(self, coords, coord_system):
         if len(coords) < 2:
-            raise DS9InconsistentArguments('Expected atleast two arguments'
+            raise DS9InconsistentArguments('Expected at least two arguments'
                                            ' for a coordinate, but only see'
                                            '{}'.format(coords))
         odd_coordinate = self._parse_position(coords.popleft(), True)
@@ -102,7 +102,7 @@ class AngleArgument(Argument):
 
 class RepeatedArgument(Argument):
     def __init__(self, arguments, name=None):
-        self.name = name
+        super().__init__(name)
         self.arguments = arguments
 
     def from_coords(self, coords, coord_system):

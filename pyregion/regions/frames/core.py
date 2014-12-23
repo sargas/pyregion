@@ -9,7 +9,7 @@ from astropy import units as u
 __all__ = ['Image', 'Physical', 'Amplifier', 'Detector']
 
 
-class _2DCartesianRepresentation(CartesianRepresentation):
+class TwoDCartesianRepresentation(CartesianRepresentation):
     def __init__(*args, **kwargs):
         kwargs.setdefault('z', 0 * kwargs.get('x').unit)
         CartesianRepresentation.__init__(*args, **kwargs)
@@ -18,11 +18,11 @@ class _2DCartesianRepresentation(CartesianRepresentation):
 
 
 class Image(BaseCoordinateFrame):
-    "Image coordinate frame"
-    default_representation = _2DCartesianRepresentation
+    """Image coordinate frame"""
+    default_representation = TwoDCartesianRepresentation
 
     frame_specific_representation_info = {
-        _2DCartesianRepresentation: [
+        TwoDCartesianRepresentation: [
             RepresentationMapping(reprname='x', framename='X',
                                   defaultunit=u.pixel),
             RepresentationMapping(reprname='y', framename='Y',
@@ -33,11 +33,11 @@ class Image(BaseCoordinateFrame):
 
 
 class Physical(BaseCoordinateFrame):
-    "Physical coordinate frame"
-    default_representation = _2DCartesianRepresentation
+    """Physical coordinate frame"""
+    default_representation = TwoDCartesianRepresentation
 
     frame_specific_representation_info = {
-        _2DCartesianRepresentation: [
+        TwoDCartesianRepresentation: [
             RepresentationMapping(reprname='x', framename='X',
                                   defaultunit=u.pixel),
             RepresentationMapping(reprname='y', framename='Y',

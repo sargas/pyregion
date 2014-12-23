@@ -138,7 +138,7 @@ class DS9Parser:
         t_shapecomment_EQ = '='
 
         def t_shapecomment_QUOTEDPARAMETER(t):
-            (r'"[^"\n]*"|' r'\{[^}\n]*\}|' r"'[^'\n]*'")
+            r'"[^"\n]*"|' r'\{[^}\n]*\}|' r"'[^'\n]*'"
             t.value = t.value[1:-1]
             return t
 
