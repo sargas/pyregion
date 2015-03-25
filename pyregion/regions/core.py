@@ -242,6 +242,22 @@ class Circle(Shape):
     """
     _arguments = [SkyCoordArgument('origin'), SizeArgument('radius')]
 
+    def transform_to(self, new_frame):
+        new_origin = self.origin.transform_to(new_frame)
+        new_radius = self.radius
+        return Circle(new_origin,
+                      new_radius,
+                      coord_system=new_frame,
+                      properties=self.properties)
+
+    def to_imageframe(self, new_frame, header):
+        new_origin = self.origin.transform_to(new_frame)
+        new_radius = self.radius
+        return Circle(new_origin,
+                      new_radius,
+                      coord_system=new_frame,
+                      properties=self.properties)
+
 
 class Ellipse(Shape):
     """Ellipse Shape

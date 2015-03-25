@@ -102,7 +102,7 @@ class AngleArgument(Argument):
 
 class RepeatedArgument(Argument):
     def __init__(self, arguments, name=None):
-        super().__init__(name)
+        Argument.__init__(self, name)
         self.arguments = arguments
 
     def from_coords(self, coords, coord_system):
