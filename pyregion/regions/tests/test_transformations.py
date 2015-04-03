@@ -51,6 +51,8 @@ def test_image_to_sky_transformations():
     w.wcs.crval = [44, 67]
     w.wcs.ctype = ["RA---TAN", "DEC--TAN"]
     header = w.to_header()
+    header['NAXIS1'] = 1014
+    header['NAXIS2'] = 1024
     frame = Image(fits_header=header)
 
     test_input = Circle(SkyCoord(108*u.pixel, 102*u.pixel, frame=frame),

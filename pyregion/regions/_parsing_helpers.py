@@ -94,20 +94,22 @@ class SizeArgument(Argument):
 
     def transform_to(self, angle, old_frame, new_frame):
         if hasattr(new_frame, 'fits_header') and angle.unit == u.pixel:
-            return angle  # TODO b/w types of pixel frames
+            # from pixel to pixel (TODO?)
+            return angle
 
         elif hasattr(new_frame, 'fits_header') and angle.unit != u.pixel:
             # from WCS to pixel frame
             w = WCS(new_frame.fits_header)
-            return angle / proj_plane_pixel_scales(w)[0]
+            return angle.value * u.pixel / proj_plane_pixel_scales(w)[0]
 
         elif angle.unit == u.pixel and not hasattr(new_frame, 'fits_header'):
             # from pixel to WCS
             w = WCS(old_frame.fits_header)
-            return angle * proj_plane_pixel_scales(w)[0]
+            return angle.value * u.degree * proj_plane_pixel_scales(w)[0]
 
         elif angle.unit != u.pixel and not hasattr(new_frame, 'fits_header'):
             # from wcs to wcs
+            # TODO handle different WCS
             return angle
 
 
@@ -133,20 +135,29 @@ class AngleArgument(Argument):
 
         elif not old_is_pixel and new_is_pixel:
             # from WCS to pixel frame
-            raise Exception
+            w = WCS(new_frame.fits_header)
+            origin = SkyCoord.from_pixel(new_frame.fits_header['NAXIS1']/2,
+                                         new_frame.fits_header['NAXIS2']/2,
+                                         w, 1)
+
+            return Angle(_estimate_angle(angle.degree, origin, w),
+                         unit=u.degree)
 
         elif old_is_pixel and not new_is_pixel:
             # from pixel frame to WCS
             w = WCS(old_frame.fits_header)
-            origin = SkyCoord.from_pixel(1014/2, 1024/2, w, 1)
+            origin = SkyCoord.from_pixel(old_frame.fits_header['NAXIS1']/2,
+                                         old_frame.fits_header['NAXIS2']/2,
+                                         w, 1)
 
-            return Angle(_estimate_angle(angle.degree, origin, w, offset=1,
+            return Angle(_estimate_angle(angle.degree, origin, w,
                                          otherway=True),
                          unit=u.degree)
 
         elif not (new_is_pixel or old_is_pixel):
             # from wcs to wcs
-            raise Exception
+            # TODO: WCS frames that are rotated from another
+            return angle
 
 
 class RepeatedArgument(Argument):
@@ -191,7 +202,7 @@ class RepeatedArgument(Argument):
             new_attributes.append(tuple(
                 argument.transform_to(attribute, old_frame, new_frame)
                 for argument, attribute in
-                zip(self.arguments, attributes.pop())))
+                zip(self.arguments, attributes.pop(0))))
 
         return new_attributes
 

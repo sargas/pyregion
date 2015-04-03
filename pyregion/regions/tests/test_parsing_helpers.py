@@ -5,11 +5,14 @@ from .._parsing_helpers import AngleArgument, IntegerArgument, RepeatedArgument
 from .._parsing_helpers import SizeArgument, SkyCoordArgument
 from .. import DS9ParsingException, DS9InconsistentArguments
 from ..frames import Image, Physical
-from astropy.coordinates import FK4, ICRS, Longitude, Latitude
+from astropy.coordinates import Angle, FK4, ICRS, Longitude, Latitude, SkyCoord
 from astropy import units as u
+from astropy.wcs import WCS
 import pytest
+import numpy as np
 from numpy.testing.utils import assert_allclose
 from collections import deque
+import itertools
 
 
 @pytest.mark.parametrize(("angle", "is_odd", "result"), [
@@ -163,3 +166,97 @@ def test_integerargument():
 
     with pytest.raises(DS9InconsistentArguments):
         int_arg.from_coords(deque(['1.3']), '')
+
+
+def test_transform_integer():
+    assert IntegerArgument().transform_to(5, None, None) == 5
+
+
+def image_frame():
+    w = WCS(naxis=2)
+    w.wcs.crpix = [108, 102]
+    w.wcs.cdelt = np.array([-0.066667, 0.066667])
+    w.wcs.crval = [44, 67]
+    w.wcs.ctype = ["RA---TAN", "DEC--TAN"]
+    header = w.to_header()
+    header['NAXIS1'] = 1014
+    header['NAXIS2'] = 1024
+    return Image(fits_header=header)
+
+
+equiv_coords = [
+    SkyCoord('44d 67d', frame=ICRS),
+    SkyCoord(X=108*u.pixel, Y=102*u.pixel,
+             frame=image_frame())
+]
+
+
+@pytest.mark.parametrize(('first', 'second'),
+                         list(itertools.product(
+                             equiv_coords, equiv_coords
+                         )))
+def test_transform_skycoord(first, second):
+    result = SkyCoordArgument().transform_to(
+        first, first.frame, second.frame)
+
+    assert result.frame.name == second.frame.name
+    if hasattr(second.frame, 'fits_header'):
+        assert result.X == second.X
+        assert result.Y == second.Y
+    else:
+        assert result.ra == second.ra
+        assert result.dec == second.dec
+
+
+equiv_sizes = [
+    {'size': Angle(2*0.066667*u.degree), 'frame': ICRS},
+    {'size': 2*u.pixel, 'frame': image_frame()}
+]
+
+
+@pytest.mark.parametrize(('first', 'second'),
+                         list(itertools.product(
+                             equiv_sizes, equiv_sizes
+                         )))
+def test_transform_size(first, second):
+    result = SizeArgument().transform_to(
+        first['size'], first['frame'], second['frame'])
+
+    assert result == second['size']
+
+
+equiv_angles = [
+    {'angle': Angle('30d'), 'frame': image_frame()},
+    {'angle': Angle('293.538d'), 'frame': ICRS}
+]
+
+
+@pytest.mark.parametrize(('first', 'second'),
+                         list(itertools.product(
+                             equiv_angles, equiv_angles
+                         )))
+def test_transform_angle(first, second):
+    result = AngleArgument().transform_to(
+        first['angle'], first['frame'], second['frame'])
+
+    assert_allclose(result, second['angle'], atol=0.001)
+
+
+def test_transform_repeatedargument():
+    mock_results = []
+
+    class MockArgument:
+        def __init__(self, name):
+            self.results = [name]
+            mock_results.append(self.results)
+
+        def transform_to(self, *args):
+            self.results.extend(args)
+
+    RepeatedArgument([MockArgument('1'), MockArgument('2')]).transform_to(
+        [('test1', 'test2'), ('test3', 'test4')], 'old_frame', 'new_frame')
+    assert len(mock_results) == 2
+    assert mock_results[0] == ['1', 'test1', 'old_frame', 'new_frame',
+                               'test3', 'old_frame', 'new_frame']
+    assert mock_results[1] == ['2', 'test2', 'old_frame', 'new_frame',
+                               'test4', 'old_frame', 'new_frame']

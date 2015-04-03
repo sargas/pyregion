@@ -226,6 +226,19 @@ class Shape(object):
         return coordlist
 
     def transform_to(self, new_frame):
+        """Transform into a new shape with a different coordinate system
+
+        Parameters
+        ----------
+        new_frame : `~astropy.coordinates.BaseCoordinateFrame`
+            Coordinate frame
+
+        Returns
+        -------
+        A new instance in the specified coordinate system. The type depends on
+        which subclass of `Shape` this is called from.
+        """
+
         new_attributes = []
         for argument in self._arguments:
             new_attributes.append(argument.transform_to(
