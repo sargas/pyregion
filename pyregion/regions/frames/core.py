@@ -65,3 +65,16 @@ def icrs_to_image(icrs_coord, image_frame):
     x, y = SkyCoord(icrs_coord).to_pixel(image_wcs, 1)
     return image_frame.__class__(X=x*u.pixel, Y=y*u.pixel,
                                  fits_header=image_frame.fits_header)
+
+
+@frame_transform_graph.transform(FunctionTransform, Image, ICRS)
+def image_to_icrs(image_coord, icrs_frame):
+    if image_coord.fits_header is None:
+        raise ValueError("Cannot convert {} to {} frame without a FITS header"
+                         .format(repr(image_coord), repr(icrs_frame)))
+    image_wcs = WCS(image_coord.fits_header)
+
+    return SkyCoord.from_pixel(image_coord.data.x,
+                               image_coord.data.y,
+                               image_wcs,
+                               origin=1).transform_to(icrs_frame).frame

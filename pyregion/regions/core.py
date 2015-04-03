@@ -225,6 +225,17 @@ class Shape(object):
 
         return coordlist
 
+    def transform_to(self, new_frame):
+        new_attributes = []
+        for argument in self._arguments:
+            new_attributes.append(argument.transform_to(
+                getattr(self, argument.name),
+                self.coord_system,
+                new_frame))
+
+        return self.__class__(*new_attributes, coord_system=new_frame,
+                              properties=self.properties)
+
 
 class Circle(Shape):
     """Circle Shape
@@ -241,22 +252,6 @@ class Circle(Shape):
         Coordinate system used for angles and radii
     """
     _arguments = [SkyCoordArgument('origin'), SizeArgument('radius')]
-
-    def transform_to(self, new_frame):
-        new_origin = self.origin.transform_to(new_frame)
-        new_radius = self.radius
-        return Circle(new_origin,
-                      new_radius,
-                      coord_system=new_frame,
-                      properties=self.properties)
-
-    def to_imageframe(self, new_frame, header):
-        new_origin = self.origin.transform_to(new_frame)
-        new_radius = self.radius
-        return Circle(new_origin,
-                      new_radius,
-                      coord_system=new_frame,
-                      properties=self.properties)
 
 
 class Ellipse(Shape):

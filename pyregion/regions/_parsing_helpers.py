@@ -3,6 +3,8 @@ from __future__ import (absolute_import, division, print_function,
 
 from astropy.coordinates import Angle, SkyCoord, SphericalRepresentation
 from astropy import units as u
+from astropy.wcs import WCS
+from astropy.wcs.utils import proj_plane_pixel_scales
 
 
 class DS9ParsingException(Exception):
@@ -64,6 +66,9 @@ class SkyCoordArgument(Argument):
                 "Inconsistent units found when parsing coordinate."
                 "Obtained {} and {}".format(odd_coordinate, even_coordinate))
 
+    def transform_to(self, skycoord, old_frame, new_frame):
+        return skycoord.transform_to(new_frame)
+
 
 class SizeArgument(Argument):
     def to_coords(self, angle):
@@ -87,6 +92,24 @@ class SizeArgument(Argument):
         else:
             return float(size)*u.pixel
 
+    def transform_to(self, angle, old_frame, new_frame):
+        if hasattr(new_frame, 'fits_header') and angle.unit == u.pixel:
+            return angle  # TODO b/w types of pixel frames
+
+        elif hasattr(new_frame, 'fits_header') and angle.unit != u.pixel:
+            # from WCS to pixel frame
+            w = WCS(new_frame.fits_header)
+            return angle / proj_plane_pixel_scales(w)[0]
+
+        elif angle.unit == u.pixel and not hasattr(new_frame, 'fits_header'):
+            # from pixel to WCS
+            w = WCS(old_frame.fits_header)
+            return angle * proj_plane_pixel_scales(w)[0]
+
+        elif angle.unit != u.pixel and not hasattr(new_frame, 'fits_header'):
+            # from wcs to wcs
+            return angle
+
 
 class AngleArgument(Argument):
     # Need to explicitly define this for Py2k compat
@@ -98,6 +121,32 @@ class AngleArgument(Argument):
         if len(coords) == 0:
             raise DS9InconsistentArguments('Expected an angle argument')
         return Angle(coords.popleft(), unit=u.degree)
+
+    def transform_to(self, angle, old_frame, new_frame):
+        from ..wcs_helper import _estimate_angle
+        new_is_pixel = hasattr(new_frame, 'fits_header')
+        old_is_pixel = hasattr(old_frame, 'fits_header')
+
+        if new_is_pixel and old_is_pixel:
+            # Angles don't change between pixel frames
+            return angle
+
+        elif not old_is_pixel and new_is_pixel:
+            # from WCS to pixel frame
+            raise Exception
+
+        elif old_is_pixel and not new_is_pixel:
+            # from pixel frame to WCS
+            w = WCS(old_frame.fits_header)
+            origin = SkyCoord.from_pixel(1014/2, 1024/2, w, 1)
+
+            return Angle(_estimate_angle(angle.degree, origin, w, offset=1,
+                                         otherway=True),
+                         unit=u.degree)
+
+        elif not (new_is_pixel or old_is_pixel):
+            # from wcs to wcs
+            raise Exception
 
 
 class RepeatedArgument(Argument):
@@ -135,6 +184,17 @@ class RepeatedArgument(Argument):
 
         return new_coords
 
+    def transform_to(self, attributes, old_frame, new_frame):
+        new_attributes = []
+        attributes = list(attributes)
+        while len(attributes) > 0:
+            new_attributes.append(tuple(
+                argument.transform_to(attribute, old_frame, new_frame)
+                for argument, attribute in
+                zip(self.arguments, attributes.pop())))
+
+        return new_attributes
+
 
 class IntegerArgument(Argument):
     def from_coords(self, integer, coord_system):
@@ -147,3 +207,6 @@ class IntegerArgument(Argument):
 
     def to_coords(self, coord):
         return [coord]
+
+    def transform_to(self, integer, old_frame, new_frame):
+        return integer
