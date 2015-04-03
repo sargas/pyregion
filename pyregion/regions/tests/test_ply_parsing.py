@@ -298,3 +298,38 @@ def test_parse_point():
     assert result.origin.data.y == 2*u.pixel
     assert result.point_type == 'diamond'
     assert result.point_size == 1
+
+
+def test_parse_line():
+    result = parse_region_string('line 1 2 3 4')
+    assert len(result) == 1
+    result = result[0]
+    assert result.start_position.data.x == 1*u.pixel
+    assert result.start_position.data.y == 2*u.pixel
+    assert result.last_position.X == 3*u.pixel
+    assert result.last_position.Y == 4*u.pixel
+
+    result = parse_region_string('line 1 2 3 4 # line=0 1')
+    assert len(result) == 1
+    result = result[0]
+    assert result.start_position.data.x == 1*u.pixel
+    assert result.start_position.data.y == 2*u.pixel
+    assert result.last_position.X == 3*u.pixel
+    assert result.last_position.Y == 4*u.pixel
+    assert result.properties.line == ('0', '1')
+
+
+def test_parse_annulus():
+    result = parse_region_string('annulus(1,2,3)')
+    assert len(result) == 1
+    result = result[0]
+    assert result.origin.X == 1*u.pixel
+    assert result.origin.Y == 2*u.pixel
+    assert result.radii == [3*u.pixel]
+
+    result = parse_region_string('annulus(1,2,3,4,5,6,7)')
+    assert len(result) == 1
+    result = result[0]
+    assert result.origin.X == 1*u.pixel
+    assert result.origin.Y == 2*u.pixel
+    assert result.radii == [i*u.pixel for i in range(3, 8)]

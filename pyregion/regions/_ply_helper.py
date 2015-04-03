@@ -1,6 +1,7 @@
 import os
 from .core import ShapeList
 from .core import Box, Bpanda, Circle, Ellipse, Epanda, Panda, Point, Polygon
+from .core import Line, Annulus
 from ._parsing_helpers import DS9ParsingException
 from . import frames
 from astropy.coordinates import builtin_frames as astropy_frames
@@ -15,7 +16,7 @@ class DS9Parser:
     def make_parser(cls):
         from astropy.extern.ply import lex, yacc
 
-        literals = ['(', ')', ',']
+        literals = [',']
         tokens = (
             'PROPERTY',
             'DELIMITER',
@@ -23,6 +24,7 @@ class DS9Parser:
             'PROPTWOARG',
             'PROPNOARG',
             'EQ',
+            'PAREN',
             'COMMENT',
             'QUOTEDPARAMETER',
             'PARAMETER',
@@ -65,6 +67,8 @@ class DS9Parser:
             'point': Point,
             'bpanda': Bpanda,
             'epanda': Epanda,
+            'line': Line,
+            'annulus': Annulus,
         }
 
         @lex.TOKEN(r'|'.join(SHAPES))
@@ -102,6 +106,9 @@ class DS9Parser:
             r'\#[^\n]*'
             pass
 
+        t_PAREN = r'\(|\)'
+        t_proplist_PAREN = t_PAREN
+
         def t_proplist_PROPERTY(t):
             r'(-|\+)?[\d.:hdms"\'pir]+'
             return t
@@ -118,12 +125,13 @@ class DS9Parser:
 
         one_arg_properties = ['color', 'text', 'width', 'font', 'select',
                               'highlite', 'dash', 'fixed', 'edit', 'move',
-                              'rotate', 'delete', 'ruler', 'include']
+                              'rotate', 'delete', 'ruler', 'include',
+                              'epanda'] # TODO: What are these for?
         two_arg_properties = ['dashlist', 'line', 'point']
         no_arg_properties = ['source', 'background']
 
         def t_shapecomment_PARAMETER(t):
-            r'''[^\n={'" ]+'''
+            r'''[^\n={'"( ]+'''
             if t.value == 'tag':
                 t.type = 'TAG'
             elif t.value in one_arg_properties:
@@ -138,7 +146,9 @@ class DS9Parser:
         t_shapecomment_EQ = '='
 
         def t_shapecomment_QUOTEDPARAMETER(t):
-            r'"[^"\n]*"|' r'\{[^}\n]*\}|' r"'[^'\n]*'"
+            r'"[^"\n]*"|' r'\{[^}\n]*\}|' r"'[^'\n]*'|" r'(\([^)\n]+\))+'
+            # Last regex is for epanda=/bpanda=/...
+            # should be parsed seperately when used
             t.value = t.value[1:-1]
             return t
 
@@ -231,7 +241,7 @@ class DS9Parser:
             p[0] = [p[1]]
 
         def p_proplist_parens(p):
-            "proplist : '(' proplist ')' "
+            "proplist : PAREN proplist PAREN "
             p[0] = p[2]
 
         def p_single_argument_property(p):

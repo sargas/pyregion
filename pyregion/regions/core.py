@@ -9,7 +9,8 @@ from astropy.units import UnitsError
 
 
 __all__ = ['Shape', 'ShapeList', 'Bpanda', 'Box', 'Circle', 'Epanda',
-           'Ellipse', 'Panda', 'Point', 'Polygon', 'Properties']
+           'Ellipse', 'Panda', 'Point', 'Polygon','Line', 'Properties',
+           'Annulus']
 
 
 class ShapeList(object):
@@ -173,6 +174,11 @@ class Shape(object):
     def tag(self):
         """List of tags"""
         return self.properties.tag
+
+    @property
+    def exclude(self):
+        """Whether to exclude this shape from the region"""
+        return not self.properties.include
 
     @classmethod
     def from_coordlist(cls, coordlist, coord_system, properties={}):
@@ -466,4 +472,49 @@ class Bpanda(Shape):
                   SizeArgument('outer'),
                   IntegerArgument('nradius'),
                   AngleArgument('angle'),
+                  ]
+
+
+class Line(Shape):
+    """Line Shape
+
+    Parameters
+    ----------
+    start_position, last_position : `~astropy.coordinates.SkyCoord`
+        Endpoints of the line segment
+    properties : dict
+        Properties of the shape
+    coord_system : `~astropy.coordinates.BaseCoordinateFrame`
+        Coordinate system used for angles and radii
+    """
+    _arguments = [SkyCoordArgument('start_position'),
+                  SkyCoordArgument('last_position')]
+
+    @property
+    def start_arrow(self):
+        """Boolean indicting an arrow at the starting location of this line"""
+        return self.properties.line[0] == '1'
+
+    @property
+    def end_arrow(self):
+        """Boolean indicting an arrow at the ending location of this line"""
+        return self.properties.line[1] == '1'
+
+
+class Annulus(Shape):
+    """Circular Annulus Shape
+
+    Parameters
+    ----------
+    origin : `~astropy.coordinates.SkyCoord`
+        Center of this shape
+    radii : list of `~astropy.units.Quantity` or `~astropy.coordinates.Angle`
+        Radii of each annulus
+    properties : dict
+        Properties of the shape
+    coord_system : `~astropy.coordinates.BaseCoordinateFrame`
+        Coordinate system used for angles and radii
+    """
+    _arguments = [SkyCoordArgument('origin'),
+                  RepeatedArgument([SizeArgument()], 'radii')
                   ]

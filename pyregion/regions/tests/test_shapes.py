@@ -7,7 +7,7 @@ from astropy.coordinates import Angle, ICRS, Longitude, Latitude, SkyCoord
 from astropy import units as u
 from numpy.testing import assert_allclose
 from .. import DS9InconsistentArguments, Bpanda, Box, Circle, Epanda, Ellipse
-from .. import Panda, Point, Polygon
+from .. import Panda, Point, Polygon, Line, Annulus
 from ..frames import Image
 
 
@@ -209,3 +209,22 @@ def test_point():
     assert result.point_type == 'box'
     assert result.point_size == 6.4
     assert result.coord_list == [1, 2]
+
+
+def test_line():
+    start = SkyCoord('1d 2d')
+    stop = SkyCoord('3d 4d')
+    result = Line(start, stop, properties={'line': ('0', '1')})
+    assert result.start_position == start
+    assert result.last_position == stop
+    assert not result.start_arrow
+    assert result.end_arrow
+    assert result.coord_list == [1, 2, 3, 4]
+
+
+def test_annulus():
+    sc = SkyCoord('44d', '2d')
+    angles = [Angle('1d'), Angle('2d'), Angle('3d'), Angle('4d')]
+    result = Annulus(sc, angles, coord_system='icrs')
+    assert result.radii == angles
+    assert result.coord_list == [44, 2, 1, 2, 3, 4]
