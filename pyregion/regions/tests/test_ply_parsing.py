@@ -299,6 +299,15 @@ def test_parse_point():
     assert result.point_type == 'diamond'
     assert result.point_size == 1
 
+    result = parse_region_string('point 1 2 # point=diamond edit = 1')
+    assert len(result) == 1
+    result = result[0]
+    assert result.origin.data.x == 1*u.pixel
+    assert result.origin.data.y == 2*u.pixel
+    assert result.point_type == 'diamond'
+    assert result.point_size is None
+    assert result.properties.edit
+
 
 def test_parse_line():
     result = parse_region_string('line 1 2 3 4')

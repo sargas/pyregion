@@ -167,39 +167,45 @@ def test_epanda():
     angles = [Angle('3d'), Angle('4d')]
     nangle = 3
     sizes = [5*u.pixel, 6*u.pixel]
+    sizes_minor = [2*u.pixel, 10*u.pixel]
     nradius = 5
     angle = Angle('9d')
-    result = Epanda(origin, angles[0], angles[1], nangle, sizes[0], sizes[1],
-                    nradius, angle, coord_system='ircs')
+    result = Epanda(origin, angles[0], angles[1], nangle, sizes[0],
+                    sizes_minor[0], sizes[1], sizes_minor[1], nradius, angle,
+                    coord_system='ircs')
     assert result.origin == origin
     assert result.start_angle == angles[0]
     assert result.stop_angle == angles[1]
     assert result.nangle == nangle
-    assert result.inner == sizes[0]
-    assert result.outer == sizes[1]
+    assert result.major_inner == sizes[0]
+    assert result.major_outer == sizes[1]
+    assert result.minor_inner == sizes_minor[0]
+    assert result.minor_outer == sizes_minor[1]
     assert result.nradius == nradius
     assert result.angle == angle
-    assert result.coord_list == [1, 2, 3, 4, 3, 5, 6, 5, 9]
+    assert result.coord_list == [1, 2, 3, 4, 3, 5, 2, 6, 10, 5, 9]
 
 
 def test_bpanda():
     origin = SkyCoord('1d 2d')
     angles = [Angle('3d'), Angle('4d')]
     nangle = 3
-    sizes = [5*u.pixel, 6*u.pixel]
+    sizes = [5*u.pixel, 6*u.pixel, 8*u.pixel, 9*u.pixel]
     nradius = 5
     angle = Angle('9d')
     result = Bpanda(origin, angles[0], angles[1], nangle, sizes[0], sizes[1],
-                    nradius, angle, coord_system='ircs')
+                    sizes[2], sizes[3], nradius, angle, coord_system='ircs')
     assert result.origin == origin
     assert result.start_angle == angles[0]
     assert result.stop_angle == angles[1]
     assert result.nangle == nangle
-    assert result.inner == sizes[0]
-    assert result.outer == sizes[1]
+    assert result.inner1 == sizes[0]
+    assert result.inner2 == sizes[1]
+    assert result.outer1 == sizes[2]
+    assert result.outer2 == sizes[3]
     assert result.nradius == nradius
     assert result.angle == angle
-    assert result.coord_list == [1, 2, 3, 4, 3, 5, 6, 5, 9]
+    assert result.coord_list == [1, 2, 3, 4, 3, 5, 6, 8, 9, 5, 9]
 
 
 def test_point():

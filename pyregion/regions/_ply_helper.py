@@ -5,6 +5,7 @@ from .core import Line, Annulus
 from ._parsing_helpers import DS9ParsingException
 from . import frames
 from astropy.coordinates import builtin_frames as astropy_frames
+import warnings
 
 
 class DS9Parser:
@@ -20,9 +21,11 @@ class DS9Parser:
         tokens = (
             'PROPERTY',
             'DELIMITER',
+            'CONJUCTION',
             'PROPONEARG',
             'PROPTWOARG',
             'PROPNOARG',
+            'PROPONEORTWOARG',
             'EQ',
             'PAREN',
             'COMMENT',
@@ -118,6 +121,13 @@ class DS9Parser:
             t.lexer.begin('INITIAL')
             return t
 
+        def t_proplist_CONJUCTION(t):
+            r'\|\|'
+            t.lexer.begin('INITIAL')
+            warnings.warn(
+                'Conjuction used in regions file: not currently supported')
+            return t
+
         def t_proplist_COMMENT(t):
             r'\#'
             t.lexer.begin('shapecomment')
@@ -126,9 +136,10 @@ class DS9Parser:
         one_arg_properties = ['color', 'text', 'width', 'font', 'select',
                               'highlite', 'dash', 'fixed', 'edit', 'move',
                               'rotate', 'delete', 'ruler', 'include',
-                              'epanda'] # TODO: What are these for?
-        two_arg_properties = ['dashlist', 'line', 'point']
+                              'epanda']  # TODO: What are these for?
+        two_arg_properties = ['dashlist', 'line']
         no_arg_properties = ['source', 'background']
+        one_or_two_arg_properties = ['point']
 
         def t_shapecomment_PARAMETER(t):
             r'''[^\n={'"( ]+'''
@@ -140,6 +151,8 @@ class DS9Parser:
                 t.type = 'PROPTWOARG'
             elif t.value in no_arg_properties:
                 t.type = 'PROPNOARG'
+            elif t.value in one_or_two_arg_properties:
+                t.type = 'PROPONEORTWOARG'
 
             return t
 
@@ -173,6 +186,7 @@ class DS9Parser:
 
         def p_shapes(p):
             ''' shapes : shapes DELIMITER line
+                       | shapes CONJUCTION line
                        | line'''
             if len(p) == 2 and p[1] is not None:
                 p[0] = [p[1]]
@@ -251,6 +265,14 @@ class DS9Parser:
         def p_two_argument_property(p):
             'commentproperty : PROPTWOARG EQ parameter parameter'
             p[0] = {p[1]: (p[3], p[4])}
+
+        def p_one_or_two_argument_property(p):
+            '''commentproperty : PROPONEORTWOARG EQ parameter parameter
+                               | PROPONEORTWOARG EQ parameter'''
+            if len(p) > 4:
+                p[0] = {p[1]: (p[3], p[4])}
+            else:
+                p[0] = {p[1]: (p[3], None)}
 
         def p_no_argument_property(p):
             ''' commentproperty : PROPNOARG

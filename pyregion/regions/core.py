@@ -9,7 +9,7 @@ from astropy.units import UnitsError
 
 
 __all__ = ['Shape', 'ShapeList', 'Bpanda', 'Box', 'Circle', 'Epanda',
-           'Ellipse', 'Panda', 'Point', 'Polygon','Line', 'Properties',
+           'Ellipse', 'Panda', 'Point', 'Polygon', 'Line', 'Properties',
            'Annulus']
 
 
@@ -397,8 +397,9 @@ class Point(Shape):
 
     @property
     def point_size(self):
-        """Size of the point"""
-        return float(self.properties.point[1])
+        """Size of the point. None if unset."""
+        if self.properties.point[1] is not None:
+            return float(self.properties.point[1])
 
 
 class Epanda(Shape):
@@ -414,10 +415,14 @@ class Epanda(Shape):
         Last angle of the shape, as measured counter-clockwise from the X axis
     nangle : int
         Number of angles between start_angle and stop_angle to use
-    inner : `~astropy.units.Quantity` or  `~astropy.coordinates.Angle`
-        Inner radius of the annulus
-    outer : `~astropy.units.Quantity` or  `~astropy.coordinates.Angle`
-        Outer radius of the annulus
+    major_inner : `~astropy.units.Quantity` or  `~astropy.coordinates.Angle`
+        Inner semi-major axis of the annulus
+    minor_inner : `~astropy.units.Quantity` or  `~astropy.coordinates.Angle`
+        Inner semi-minor axis of the annulus
+    major_outer : `~astropy.units.Quantity` or  `~astropy.coordinates.Angle`
+        Outer semi-major axis of the annulus
+    minor_outer : `~astropy.units.Quantity` or  `~astropy.coordinates.Angle`
+        Outer semi-minor axis of the annulus
     nradius : int
         Number of radii between inner and outer to use
     angle : `~astropy.coordinates.Angle`
@@ -431,8 +436,10 @@ class Epanda(Shape):
                   AngleArgument('start_angle'),
                   AngleArgument('stop_angle'),
                   IntegerArgument('nangle'),
-                  SizeArgument('inner'),
-                  SizeArgument('outer'),
+                  SizeArgument('major_inner'),
+                  SizeArgument('minor_inner'),
+                  SizeArgument('major_outer'),
+                  SizeArgument('minor_outer'),
                   IntegerArgument('nradius'),
                   AngleArgument('angle'),
                   ]
@@ -451,14 +458,18 @@ class Bpanda(Shape):
         Last angle of the shape, as measured counter-clockwise from the X axis
     nangle : int
         Number of angles between start_angle and stop_angle to use
-    inner : `~astropy.units.Quantity` or  `~astropy.coordinates.Angle`
-        Inner radius of the annulus
-    outer : `~astropy.units.Quantity` or  `~astropy.coordinates.Angle`
-        Outer radius of the annulus
+    inner1 : `~astropy.units.Quantity` or  `~astropy.coordinates.Angle`
+        Inner radius of the box annulus in the first direction
+    inner2 : `~astropy.units.Quantity` or  `~astropy.coordinates.Angle`
+        Inner radius of the box annulus in the second direction
+    outer1 : `~astropy.units.Quantity` or  `~astropy.coordinates.Angle`
+        Outer radius of the box annulus in the first direction
+    outer2 : `~astropy.units.Quantity` or  `~astropy.coordinates.Angle`
+        Outer radius of the box annulus in the second direction
     nradius : int
         Number of radii between inner and outer to use
     angle : `~astropy.coordinates.Angle`
-        Rotation angle
+        Rotation angle to the first direction
     properties : dict
         Properties of the shape
     coord_system : `~astropy.coordinates.BaseCoordinateFrame`
@@ -468,8 +479,10 @@ class Bpanda(Shape):
                   AngleArgument('start_angle'),
                   AngleArgument('stop_angle'),
                   IntegerArgument('nangle'),
-                  SizeArgument('inner'),
-                  SizeArgument('outer'),
+                  SizeArgument('inner1'),
+                  SizeArgument('inner2'),
+                  SizeArgument('outer1'),
+                  SizeArgument('outer2'),
                   IntegerArgument('nradius'),
                   AngleArgument('angle'),
                   ]
